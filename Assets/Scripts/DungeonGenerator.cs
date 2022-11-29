@@ -24,8 +24,9 @@ public class DungeonGenerator : MonoBehaviour
 
     Grid grid;
 
-    [SerializeField]
-    public List<Room> rooms;
+    [SerializeField] List<Room> rooms;
+
+    Dictionary<Room, List<Room>> roomMap;
 
     private void Start()
     {
@@ -108,7 +109,27 @@ public class DungeonGenerator : MonoBehaviour
 
     void CreateConnectedMap()
     {
+        roomMap = new Dictionary<Room, List<Room>>();
+        for(int i = 0; i < rooms.Count; i++)
+        {
+            for(int j = i; j < rooms.Count; j++)
+            {
+                //Try to get value, if succeed, add room, if fail, add new entry to dictionary with room
+                if (roomMap.TryGetValue(rooms[i], out List<Room> roomList))
+                {
+                    roomList.Add(rooms[j]);
+                }
+                else
+                {
+                    roomMap.Add(rooms[i], new List<Room> { rooms[j] });
+                }
+            }
+        }
 
+        foreach(KeyValuePair<Room, List<Room>> pair in roomMap)
+        {
+            Debug.Log(roomMap[pair.Key].Count);
+        }
     }
 
     void DerriveMinimumSpanningTree()
@@ -124,5 +145,22 @@ public class DungeonGenerator : MonoBehaviour
     void CarveHallways()
     {
 
+    }
+
+    private void OnDrawGizmos()
+    {
+        if(Application.isPlaying)
+        {
+            foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
+            {
+                Room currentRoom = pair.Key;
+
+                foreach (Room connectedRoom in pair.Value)
+                {
+                    Gizmos.color = Color.red;
+                    Gizmos.DrawLine(currentRoom.cells[0].center, connectedRoom.cells[0].center);
+                }
+            }
+        }
     }
 }
