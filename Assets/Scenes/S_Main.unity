@@ -331,12 +331,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feac98380aa3aae4c8a9c8e29ab0a026, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cellWidth: 5
-  cellHeight: 5
-  cellDepth: 5
-  cellCountX: 20
-  cellCountY: 1
-  cellCountZ: 20
+  drawGrid: 1
 --- !u!4 &1459068378
 Transform:
   m_ObjectHideFlags: 0
@@ -365,6 +360,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   room: {fileID: 8132880929042404955, guid: 2258075479def3b49b6ed56f2b57eec5, type: 3}
-  numRandomRooms: 10
+  numRandomRooms: 3
   maxSize: {x: 3, y: 1, z: 3}
   minSize: {x: 1, y: 1, z: 1}
+  cellWidth: 2
+  cellHeight: 2
+  cellDepth: 2
+  cellCountX: 20
+  cellCountY: 10
+  cellCountZ: 20
+  rooms: []

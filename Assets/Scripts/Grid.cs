@@ -1,11 +1,19 @@
 using UnityEngine;
 
+public enum CellTypes
+{
+    NONE = 0,
+    ROOM,
+    HALLWAY,
+    STAIRS
+}
+
 public struct Cell
 {
     public Vector3 center;
     public Vector3 sizes;
 
-    public bool isRoom; //Specifies that this space is a room space
+    public CellTypes cellType; //Specifies that this space is a room space
 
     public void DrawGizmo()
     {
@@ -16,26 +24,18 @@ public struct Cell
 public class Grid : MonoBehaviour
 {
     //Dimensions of cell
-    [SerializeField] float cellWidth = 2.0f;   //X
-    [SerializeField] float cellHeight = 2.0f;  //Y
-    [SerializeField] float cellDepth = 2.0f;   //Z
-
-    public Vector3 CellDimensions
-    {
-        get { return new Vector3(cellWidth, cellHeight, cellDepth); }
-    }
+    float cellWidth = 0f;   //X
+    float cellHeight = 0f;  //Y
+    float cellDepth = 0f;   //Z
 
     //Number of cells in each direction
-    [SerializeField] int cellCountX = 10;
-    [SerializeField] int cellCountY = 10;
-    [SerializeField] int cellCountZ = 10;
-
-    public Vector3 GridDimensions
-    {
-        get { return new Vector3(cellCountX, cellCountY, cellCountZ); }
-    }
+    int cellCountX = 0;
+    int cellCountY = 0;
+    int cellCountZ = 0;
 
     private Cell[,,] cells;
+
+    [SerializeField] bool drawGrid = true;
 
     public ref Cell GetCell(int x, int y, int z)
     {
@@ -46,17 +46,25 @@ public class Grid : MonoBehaviour
         return ref cells[(int)indices.x, (int)indices.y, (int)indices.z];
     }
 
-    private void Awake()
+    public void InitGrid(Vector3 cellDimensions, Vector3 cellCount)
     {
+        cellWidth = cellDimensions.x;
+        cellHeight = cellDimensions.y;
+        cellDepth = cellDimensions.z;
+
+        cellCountX = (int)cellCount.x;
+        cellCountY = (int)cellCount.y;
+        cellCountZ = (int)cellCount.z;
+
         cells = new Cell[cellCountX, cellCountY, cellCountZ];
 
         for (int i = 0; i < cellCountX; i++)
         {
-            for(int j = 0; j < cellCountY; j++)
+            for (int j = 0; j < cellCountY; j++)
             {
-                for(int k = 0; k < cellCountZ; k++)
+                for (int k = 0; k < cellCountZ; k++)
                 {
-                    cells[i, j, k].isRoom = false;
+                    cells[i, j, k].cellType = CellTypes.NONE;
                     cells[i, j, k].center = new Vector3(i * cellWidth, j * cellHeight, k * cellDepth);
                     cells[i, j, k].sizes = new Vector3(cellWidth, cellHeight, cellDepth);
                 }
@@ -94,7 +102,7 @@ public class Grid : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if(Application.isPlaying)
+        if(Application.isPlaying && drawGrid)
         {
             foreach (Cell cell in cells)
             {
