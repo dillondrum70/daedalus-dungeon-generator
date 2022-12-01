@@ -56,6 +56,8 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] int cellCountY = 10;
     [SerializeField] int cellCountZ = 10;
 
+    List<Triangle> triangles = new List<Triangle>();
+
     public Vector3 GridDimensions
     {
         get { return new Vector3(cellCountX, cellCountY, cellCountZ); }
@@ -167,26 +169,198 @@ public class DungeonGenerator : MonoBehaviour
     void CreateConnectedMap()
     {
         roomMap = new Dictionary<Room, List<Room>>();
-        for(int i = 0; i < rooms.Count; i++)
+
+        triangles.Clear();
+        Triangle superTriangle = new Triangle(
+            new Vector3(-cellWidth * cellCountX, -cellHeight * cellCountY, -cellDepth * cellCountZ),
+            new Vector3(cellWidth * cellCountX * 2, -CellDimensions.y, -CellDimensions.z),
+            new Vector3(-CellDimensions.x, cellHeight * cellCountY * 2, cellDepth * cellCountZ * 2)
+            );
+
+        //Define super triangle that contains all rooms
+        triangles.Add(superTriangle);
+
+        //Debug.DrawLine(superTriangle.pointA, superTriangle.pointB, Color.red, 9999999.9f);
+        //Debug.DrawLine(superTriangle.pointA, superTriangle.pointC, Color.red, 9999999.9f);
+        //Debug.DrawLine(superTriangle.pointC, superTriangle.pointB, Color.red, 9999999.9f);
+
+        foreach (Room room in rooms)
         {
-            for(int j = i; j < rooms.Count; j++)
+            Debug.Log("New Room");
+            List<Triangle> containing = new List<Triangle>();
+
+            //Number of occurrences of each point (points that overlap between triangles)
+            Dictionary<Vector3, int> occurrences = new Dictionary<Vector3, int>();
+
+            foreach(Triangle tri in triangles)
             {
-                //Try to get value, if succeed, add room, if fail, add new entry to dictionary with room
-                if (roomMap.TryGetValue(rooms[i], out List<Room> roomList))
+                if(tri.CircumsphereContainsPoint(room.center))
                 {
-                    roomList.Add(rooms[j]);
+                    containing.Add(tri);
+
+                    if (occurrences.TryGetValue(tri.pointA, out int numA))
+                    {
+                        occurrences[tri.pointA]++;
+                    }
+                    else
+                    {
+                        occurrences.Add(tri.pointA, 1);
+                    }
+
+                    if (occurrences.TryGetValue(tri.pointB, out int numB))
+                    {
+                        occurrences[tri.pointB]++;
+                    }
+                    else
+                    {
+                        occurrences.Add(tri.pointB, 1);
+                    }
+
+                    if (occurrences.TryGetValue(tri.pointC, out int numC))
+                    {
+                        occurrences[tri.pointC]++;
+                    }
+                    else
+                    {
+                        occurrences.Add(tri.pointC, 1);
+                    }
                 }
-                else
+            }
+
+            //foreach(Triangle tri in containing)
+            //{
+            //    occurrences[tri.pointA]++;
+            //    occurrences[tri.pointB]++;
+            //    occurrences[tri.pointC]++;
+            //}
+
+            foreach(Triangle tri in containing)
+            {
+                int i = 0;
+                //If more than one point occurs twice, then we don't add the triangle because one of its edges would cross
+                //an edge of one of the new triangles
+                if (!(occurrences[tri.pointA] > 1 && occurrences[tri.pointB] > 1))
                 {
-                    roomMap.Add(rooms[i], new List<Room> { rooms[j] });
+                    triangles.Add(new Triangle(tri.pointA, tri.pointB, room.center));
+
+                    //Debug.Log("Triangle: " + i);
+                    //Debug.Log(occurrences[tri.pointA] + "  " + tri.pointA);
+                    //Debug.Log(occurrences[tri.pointB] + "  " + tri.pointB);
+
+                    i++;
+
+                    //if ((occurrences[tri.pointA] > 2 || occurrences[tri.pointB] > 2))
+                    //{
+                    //    Debug.Break();
+                    //}
                 }
+
+                //Each pair of vertices is an edge
+                if(!(occurrences[tri.pointA] > 1 && occurrences[tri.pointC] > 1))
+                {
+                    triangles.Add(new Triangle(tri.pointA, tri.pointC, room.center));
+
+                    //Debug.Log("Triangle: " + i);
+                    //Debug.Log(occurrences[tri.pointC] + "  " + tri.pointC);
+                    //Debug.Log(occurrences[tri.pointA] + "  " + tri.pointA);
+
+                    i++;
+
+                    //if ((occurrences[tri.pointA] > 2 || occurrences[tri.pointC] > 2))
+                    //{
+                    //    Debug.Break();
+                    //}
+                }
+                
+                if(!(occurrences[tri.pointC] > 1 && occurrences[tri.pointB] > 1))
+                {
+                    triangles.Add(new Triangle(tri.pointC, tri.pointB, room.center));
+
+                    //Debug.Log("Triangle: " + i);
+                    //Debug.Log(occurrences[tri.pointC] + "  " + tri.pointC);
+                    //Debug.Log(occurrences[tri.pointB] + "  " + tri.pointB);
+
+                    i++;
+
+                    //if ((occurrences[tri.pointC] > 2 || occurrences[tri.pointB] > 2))
+                    //{
+                    //    Debug.Break();
+                    //}
+                }
+
+                //Remove the larger triangle regardless
+                //triangles.Remove(tri);//////////////////////////////////
+                //delete.Add(tri);
+
+                //Debug.DrawLine(tri.pointA, tri.pointB, Color.red, 9999999.9f);
+                //Debug.DrawLine(tri.pointA, room.center, Color.red, 9999999.9f);
+                //Debug.DrawLine(room.center, tri.pointB, Color.red, 9999999.9f);
+
+                //Debug.DrawLine(tri.pointA, tri.pointC, Color.red, 9999999.9f);
+                //Debug.DrawLine(tri.pointA, room.center, Color.red, 9999999.9f);
+                //Debug.DrawLine(room.center, tri.pointC, Color.red, 9999999.9f);
+
+                //Debug.DrawLine(tri.pointC, tri.pointB, Color.red, 9999999.9f);
+                //Debug.DrawLine(tri.pointC, room.center, Color.red, 9999999.9f);
+                //Debug.DrawLine(room.center, tri.pointB, Color.red, 9999999.9f);
+
+            }
+
+            foreach(KeyValuePair<Vector3, int> pair in occurrences)
+            {
+                Debug.Log(pair.Key + "  " + pair.Value);
+            }
+
+            int f = 0;
+            foreach(Triangle tri in containing)
+            {
+                //Debug.Log("Triangle: " + f);
+                //Debug.Log(occurrences[tri.pointA] + "  " + tri.pointA);
+                //Debug.Log(occurrences[tri.pointB] + "  " + tri.pointB);
+                //Debug.Log(occurrences[tri.pointC] + "  " + tri.pointC);
+
+                triangles.Remove(tri);
+                f++;
             }
         }
 
-        foreach(KeyValuePair<Room, List<Room>> pair in roomMap)
+        //Delete all triangles connecting to super triangle
+        for(int i = triangles.Count - 1; i >= 0; i--)
         {
-            Debug.Log(roomMap[pair.Key].Count);
+            if (triangles[i].pointA == superTriangle.pointA ||
+               triangles[i].pointB == superTriangle.pointA ||
+               triangles[i].pointC == superTriangle.pointA ||
+               triangles[i].pointA == superTriangle.pointB ||
+               triangles[i].pointB == superTriangle.pointB ||
+               triangles[i].pointC == superTriangle.pointB ||
+               triangles[i].pointA == superTriangle.pointC ||
+               triangles[i].pointB == superTriangle.pointC ||
+               triangles[i].pointC == superTriangle.pointC)
+            {
+                triangles.Remove(triangles[i]);
+            }
         }
+
+        //for(int i = 0; i < rooms.Count; i++)
+        //{
+        //    for(int j = i; j < rooms.Count; j++)
+        //    {
+        //        //Try to get value, if succeed, add room, if fail, add new entry to dictionary with room
+        //        if (roomMap.TryGetValue(rooms[i], out List<Room> roomList))
+        //        {
+        //            roomList.Add(rooms[j]);
+        //        }
+        //        else
+        //        {
+        //            roomMap.Add(rooms[i], new List<Room> { rooms[j] });
+        //        }
+        //    }
+        //}
+
+        //foreach(KeyValuePair<Room, List<Room>> pair in roomMap)
+        //{
+        //    Debug.Log(roomMap[pair.Key].Count);
+        //}
     }
 
     void DerriveMinimumSpanningTree()
@@ -208,10 +382,29 @@ public class DungeonGenerator : MonoBehaviour
     {
         if(Application.isPlaying)
         {
-            Triangle tri = new Triangle(rooms[0].center, rooms[1].center, rooms[2].center);
-            Circumsphere sphere = DelaunayTriangulation.FindCircumcenter(tri);
+            //Triangle triangle = new Triangle(rooms[0].center, rooms[1].center, rooms[2].center);
+            //Circumsphere sphere = DelaunayTriangulation.FindCircumcenter(triangle);
 
-            Gizmos.DrawSphere(sphere.center, sphere.radius);
+            //Vector3 diff = (rooms[0].center - sphere.center).normalized * sphere.radius;
+
+            //Gizmos.DrawSphere(sphere.center, sphere.radius);
+            //Gizmos.DrawLine(sphere.center, sphere.center + diff);
+            //Gizmos.DrawSphere(rooms[0].center, .1f);
+            //Gizmos.DrawSphere(sphere.center, .1f);
+
+            //Circumsphere sphere = DelaunayTriangulation.FindCircumcenter(triangles[0]);
+            //triangles[0].DrawGizmos();
+            //Gizmos.DrawSphere(sphere.center, sphere.radius);
+
+            foreach (Triangle tri in triangles)
+            {
+                //Room currentRoom = pair.Key;
+                Gizmos.color = Color.red;
+                Gizmos.DrawLine(tri.pointA, tri.pointB);
+                Gizmos.DrawLine(tri.pointA, tri.pointC);
+                Gizmos.DrawLine(tri.pointC, tri.pointB);
+            }
+
             //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
             //{
             //    Room currentRoom = pair.Key;

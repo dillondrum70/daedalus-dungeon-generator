@@ -367,6 +367,6 @@ MonoBehaviour:
   cellHeight: 2
   cellDepth: 2
   cellCountX: 20
-  cellCountY: 10
+  cellCountY: 1
   cellCountZ: 20
   rooms: []

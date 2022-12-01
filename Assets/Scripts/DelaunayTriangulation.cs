@@ -20,10 +20,30 @@ public struct Triangle
         pointB = newPointB;
         pointC = newPointC;
     }
+
+    public void DrawGizmos()
+    {
+        Gizmos.DrawLine(pointA, pointB);
+        Gizmos.DrawLine(pointA, pointC);
+        Gizmos.DrawLine(pointC, pointB);
+    }
+
+    public bool CircumsphereContainsPoint(Vector3 point)
+    {
+        Circumsphere sphere = DelaunayTriangulation.FindCircumcenter(this);
+
+        if(Vector3.Distance(point, sphere.center) < sphere.radius)
+        {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 public class DelaunayTriangulation
 {
+    //https://gamedev.stackexchange.com/questions/60630/how-do-i-find-the-circumcenter-of-a-triangle-in-3d
     public static Circumsphere FindCircumcenter(Triangle tri)
     {
         Circumsphere sphere;
@@ -32,7 +52,7 @@ public class DelaunayTriangulation
         Vector3 ab = tri.pointB - tri.pointA;   //Vector from A to B
         Vector3 abCrossAC = Vector3.Cross(ab, ac);  //Cross product of AC with AB
 
-        Vector3 aToCenter = (Vector3.Cross(abCrossAC, ab) * ac.sqrMagnitude + Vector3.Cross(ac, abCrossAC) * ab.sqrMagnitude) 
+        Vector3 aToCenter = ((Vector3.Cross(abCrossAC, ab) * ac.sqrMagnitude) + (Vector3.Cross(ac, abCrossAC) * ab.sqrMagnitude)) 
                 / (2.0f * abCrossAC.sqrMagnitude);
         sphere.radius = aToCenter.magnitude;    //Distance between sphere center and any point on triangle is the radius
         sphere.center = tri.pointA + aToCenter;     //The actual center of the circumsphere
@@ -42,4 +62,6 @@ public class DelaunayTriangulation
 
         return sphere;
     }
+
+    
 }
