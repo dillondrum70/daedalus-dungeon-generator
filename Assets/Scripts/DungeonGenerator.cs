@@ -34,6 +34,7 @@ public class Room
 public class DungeonGenerator : MonoBehaviour
 {
     [SerializeField] GameObject room;
+    [SerializeField] GameObject roomParent;
 
     [SerializeField] int numRandomRooms = 4;
     [SerializeField] Vector3 maxSize = new Vector3(3, 1, 3);
@@ -65,13 +66,34 @@ public class DungeonGenerator : MonoBehaviour
 
     [SerializeField] List<Room> rooms;
 
-    Dictionary<Room, List<Room>> roomMap;
+    //Dictionary<Room, List<Room>> roomMap;
 
     private void Start()
     {
         grid = GetComponent<Grid>();
         grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
         Generate();
+    }
+
+    private void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.Space))
+        {
+            Clear();
+            grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
+            Generate();
+        }
+    }
+
+    void Clear()
+    {
+        //Empty all arrays and delete all current rooms
+        triangles.Clear();
+        rooms.Clear();
+        foreach(Transform child in roomParent.transform)
+        {
+            Destroy(child.gameObject);
+        }
     }
 
     void Generate()
@@ -85,13 +107,13 @@ public class DungeonGenerator : MonoBehaviour
 
     void GenerateRandomRooms()
     {
-        for(int i = 0; i < numRandomRooms; i++)
+        for (int i = 0; i < numRandomRooms; i++)
         {
             Vector3 randPos = new Vector3(
                 CellDimensions.x * UnityEngine.Random.Range(0, GridDimensions.x),
                 CellDimensions.y * UnityEngine.Random.Range(0, GridDimensions.y),
                 CellDimensions.z * UnityEngine.Random.Range(0, GridDimensions.z)
-            ) ;
+            );
 
             //Number of room segments in each direction
             Vector3 randSize = new Vector3(
@@ -140,20 +162,20 @@ public class DungeonGenerator : MonoBehaviour
                             //    currentIndices.y < GridDimensions.y && currentIndices.y >= 0 &&
                             //    currentIndices.z < GridDimensions.z && currentIndices.z >= 0)
                             //{
-                                //Get index of current space based on first grid index (gridIndices) plus the indices of (j, k, l)
+                            //Get index of current space based on first grid index (gridIndices) plus the indices of (j, k, l)
 
-                                Vector3 currentCenter = grid.GetCenterByIndices(currentIndices);
+                            Vector3 currentCenter = grid.GetCenterByIndices(currentIndices);
 
-                                //If cell is not filled, fill it
-                                if (grid.GetCell(currentIndices).cellType == CellTypes.NONE)
-                                {
-                                    grid.GetCell(currentIndices).cellType = CellTypes.ROOM;
-                                    newRoom.cells.Add(grid.GetCell(currentIndices));
+                            //If cell is not filled, fill it
+                            if (grid.GetCell(currentIndices).cellType == CellTypes.NONE)
+                            {
+                                grid.GetCell(currentIndices).cellType = CellTypes.ROOM;
+                                newRoom.cells.Add(grid.GetCell(currentIndices));
 
-                                    Transform trans = Instantiate(room, currentCenter, Quaternion.identity, null).transform;
+                                Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent.transform).transform;
 
-                                    trans.localScale = CellDimensions;
-                                }
+                                trans.localScale = CellDimensions;
+                            }
                             //}
                         }
                     }
@@ -164,6 +186,42 @@ public class DungeonGenerator : MonoBehaviour
                 rooms.Add(newRoom);
             }
         }
+
+        //Room room1 = new Room();
+        //room1.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(30, 0, 25))));
+        //room1.center = new Vector3(30, 0, 25);
+        //Transform trans1 = Instantiate(room, room1.center, Quaternion.identity, null).transform;
+        //trans1.localScale = CellDimensions;
+
+        //Room room2 = new Room();
+        //room2.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(7, 0, 32))));
+        //room2.center = new Vector3(7, 0, 32);
+        //Transform trans2 = Instantiate(room, room2.center, Quaternion.identity, null).transform;
+        //trans2.localScale = CellDimensions;
+
+        //Room room3 = new Room();
+        //room3.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(7, 0, 35))));
+        //room3.center = new Vector3(7, 0, 35);
+        //Transform trans3 = Instantiate(room, room3.center, Quaternion.identity, null).transform;
+        //trans3.localScale = CellDimensions;
+
+        //Room room4 = new Room();
+        //room4.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(23, 0, 30))));
+        //room4.center = new Vector3(23, 0, 30);
+        //Transform trans4 = Instantiate(room, room4.center, Quaternion.identity, null).transform;
+        //trans4.localScale = CellDimensions;
+
+        //Room room5 = new Room();
+        //room5.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(9, 0, 18))));
+        //room5.center = new Vector3(9, 0, 18);
+        //Transform trans5 = Instantiate(room, room5.center, Quaternion.identity, null).transform;
+        //trans5.localScale = CellDimensions;
+
+        //rooms.Add(room1);
+        //rooms.Add(room2);
+        //rooms.Add(room3);
+        //rooms.Add(room4);
+        //rooms.Add(room5);
     }
 
     void CreateConnectedMap()
@@ -173,7 +231,7 @@ public class DungeonGenerator : MonoBehaviour
             new Vector3(-cellWidth * cellCountX, -cellHeight * cellCountY, -cellDepth * cellCountZ),
             new Vector3(cellWidth * cellCountX * 2, -CellDimensions.y, -CellDimensions.z),
             new Vector3(-CellDimensions.x, cellHeight * cellCountY * 2, cellDepth * cellCountZ * 2)
-            );
+        );
 
         //Define super triangle that contains all rooms
         triangles.Add(superTriangle);
@@ -184,156 +242,83 @@ public class DungeonGenerator : MonoBehaviour
 
         foreach (Room room in rooms)
         {
-            Debug.Log("New Room");
+            //Debug.Log("New Room");
             List<Triangle> containing = new List<Triangle>();
 
             //Number of occurrences of each point (points that overlap between triangles)
-            Dictionary<Vector3, int> occurrences = new Dictionary<Vector3, int>();
+            Dictionary<Edge, int> occurrences = new Dictionary<Edge, int>();
 
+            //Find which triangles whose circumspheres contain the center of the room
+            //Log how many times each edge occurs for checking which edges to remove later on
             foreach(Triangle tri in triangles)
             {
                 if(tri.CircumsphereContainsPoint(room.center))
                 {
                     containing.Add(tri);
 
-                    //if (occurrences.TryAdd(tri.pointA, 1))
-                    //{
-                    //    occurrences[tri.pointA]++;
-                    //}
+                    Edge[] edges = tri.GetEdges();
 
-                    //if (occurrences.TryAdd(tri.pointB, 1))
-                    //{
-                    //    occurrences[tri.pointB]++;
-                    //}
-
-                    //if (occurrences.TryAdd(tri.pointC, 1))
-                    //{
-                    //    occurrences[tri.pointC]++;
-                    //}
-
-                    if (occurrences.TryGetValue(tri.pointA, out int numA))
+                    if (occurrences.TryGetValue(edges[0], out int numA))
                     {
-                        occurrences[tri.pointA]++;
+                        occurrences[edges[0]]++;
                     }
                     else
                     {
-                        occurrences.Add(tri.pointA, 1);
+                        occurrences.Add(edges[0], 1);
                     }
 
-                    if (occurrences.TryGetValue(tri.pointB, out int numB))
+                    if (occurrences.TryGetValue(edges[1], out int numB))
                     {
-                        occurrences[tri.pointB]++;
+                        occurrences[edges[1]]++;
                     }
                     else
                     {
-                        occurrences.Add(tri.pointB, 1);
+                        occurrences.Add(edges[1], 1);
                     }
 
-                    if (occurrences.TryGetValue(tri.pointC, out int numC))
+                    if (occurrences.TryGetValue(edges[2], out int numC))
                     {
-                        occurrences[tri.pointC]++;
+                        occurrences[edges[2]]++;
                     }
                     else
                     {
-                        occurrences.Add(tri.pointC, 1);
+                        occurrences.Add(edges[2], 1);
+                    }
+                }
+            }
+            
+            //Edges are just two points from a triangle, each triangle has 3 edges
+            //If an edge is shared by another triangle, we do not add the edge to polygon
+            //We log the occurrences of edges between triangles when we first add them to "containing"
+            List<Edge> polygon = new List<Edge>();
+            foreach (Triangle tri in containing)
+            {
+                Edge[] edges = tri.GetEdges();
+
+                foreach(Edge edge in edges)
+                {
+                    if (!(occurrences[edge] > 1))
+                    {
+                        polygon.Add(edge);
                     }
                 }
             }
 
-            //foreach(Triangle tri in containing)
-            //{
-            //    occurrences[tri.pointA]++;
-            //    occurrences[tri.pointB]++;
-            //    occurrences[tri.pointC]++;
-            //}
-
-            foreach(Triangle tri in containing)
+            //Remove triangles in containing from structure of all triangles 
+            foreach (Triangle tri in containing)
             {
-                int i = 0;
-                //If more than one point occurs twice, then we don't add the triangle because one of its edges would cross
-                //an edge of one of the new triangles
-                if (!(occurrences[tri.pointA] > 1 && occurrences[tri.pointB] > 1))
-                {
-                    triangles.Add(new Triangle(tri.pointA, tri.pointB, room.center));
-
-                    //Debug.Log("Triangle: " + i);
-                    //Debug.Log(occurrences[tri.pointA] + "  " + tri.pointA);
-                    //Debug.Log(occurrences[tri.pointB] + "  " + tri.pointB);
-
-                    i++;
-
-                    //if ((occurrences[tri.pointA] > 2 || occurrences[tri.pointB] > 2))
-                    //{
-                    //    Debug.Break();
-                    //}
-                }
-
-                //Each pair of vertices is an edge
-                if(!(occurrences[tri.pointA] > 1 && occurrences[tri.pointC] > 1))
-                {
-                    triangles.Add(new Triangle(tri.pointA, tri.pointC, room.center));
-
-                    //Debug.Log("Triangle: " + i);
-                    //Debug.Log(occurrences[tri.pointC] + "  " + tri.pointC);
-                    //Debug.Log(occurrences[tri.pointA] + "  " + tri.pointA);
-
-                    i++;
-
-                    //if ((occurrences[tri.pointA] > 2 || occurrences[tri.pointC] > 2))
-                    //{
-                    //    Debug.Break();
-                    //}
-                }
-                
-                if(!(occurrences[tri.pointC] > 1 && occurrences[tri.pointB] > 1))
-                {
-                    triangles.Add(new Triangle(tri.pointC, tri.pointB, room.center));
-
-                    //Debug.Log("Triangle: " + i);
-                    //Debug.Log(occurrences[tri.pointC] + "  " + tri.pointC);
-                    //Debug.Log(occurrences[tri.pointB] + "  " + tri.pointB);
-
-                    i++;
-
-                    //if ((occurrences[tri.pointC] > 2 || occurrences[tri.pointB] > 2))
-                    //{
-                    //    Debug.Break();
-                    //}
-                }
-
-                //Remove the larger triangle regardless
-                //triangles.Remove(tri);//////////////////////////////////
-                //delete.Add(tri);
-
-                //Debug.DrawLine(tri.pointA, tri.pointB, Color.red, 9999999.9f);
-                //Debug.DrawLine(tri.pointA, room.center, Color.red, 9999999.9f);
-                //Debug.DrawLine(room.center, tri.pointB, Color.red, 9999999.9f);
-
-                //Debug.DrawLine(tri.pointA, tri.pointC, Color.red, 9999999.9f);
-                //Debug.DrawLine(tri.pointA, room.center, Color.red, 9999999.9f);
-                //Debug.DrawLine(room.center, tri.pointC, Color.red, 9999999.9f);
-
-                //Debug.DrawLine(tri.pointC, tri.pointB, Color.red, 9999999.9f);
-                //Debug.DrawLine(tri.pointC, room.center, Color.red, 9999999.9f);
-                //Debug.DrawLine(room.center, tri.pointB, Color.red, 9999999.9f);
-
-            }
-
-            foreach(KeyValuePair<Vector3, int> pair in occurrences)
-            {
-                Debug.Log(pair.Key + "  " + pair.Value);
-            }
-
-            int f = 0;
-            foreach(Triangle tri in containing)
-            {
-                //Debug.Log("Triangle: " + f);
-                //Debug.Log(occurrences[tri.pointA] + "  " + tri.pointA);
-                //Debug.Log(occurrences[tri.pointB] + "  " + tri.pointB);
-                //Debug.Log(occurrences[tri.pointC] + "  " + tri.pointC);
-
                 triangles.Remove(tri);
-                f++;
+            }
+
+            //Create a new triangle using each valid edge and the room center
+            foreach (Edge edge in polygon)
+            {
+                triangles.Add(new Triangle(edge.pointA, edge.pointB, room.center));
+            }
+            Debug.Log("New");
+            foreach(KeyValuePair<Edge, int> pair in occurrences)
+            {
+                Debug.Log(pair.Value + " - " + pair.Key.pointA + " : " + pair.Key.pointB);
             }
         }
 
@@ -350,7 +335,7 @@ public class DungeonGenerator : MonoBehaviour
                triangles[i].pointB == superTriangle.pointC ||
                triangles[i].pointC == superTriangle.pointC)
             {
-                triangles.Remove(triangles[i]);
+                //triangles.Remove(triangles[i]);
             }
         }
 
