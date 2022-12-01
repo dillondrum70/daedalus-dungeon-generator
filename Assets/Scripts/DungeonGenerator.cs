@@ -168,8 +168,6 @@ public class DungeonGenerator : MonoBehaviour
 
     void CreateConnectedMap()
     {
-        roomMap = new Dictionary<Room, List<Room>>();
-
         triangles.Clear();
         Triangle superTriangle = new Triangle(
             new Vector3(-cellWidth * cellCountX, -cellHeight * cellCountY, -cellDepth * cellCountZ),
@@ -197,6 +195,21 @@ public class DungeonGenerator : MonoBehaviour
                 if(tri.CircumsphereContainsPoint(room.center))
                 {
                     containing.Add(tri);
+
+                    //if (occurrences.TryAdd(tri.pointA, 1))
+                    //{
+                    //    occurrences[tri.pointA]++;
+                    //}
+
+                    //if (occurrences.TryAdd(tri.pointB, 1))
+                    //{
+                    //    occurrences[tri.pointB]++;
+                    //}
+
+                    //if (occurrences.TryAdd(tri.pointC, 1))
+                    //{
+                    //    occurrences[tri.pointC]++;
+                    //}
 
                     if (occurrences.TryGetValue(tri.pointA, out int numA))
                     {
@@ -340,6 +353,8 @@ public class DungeonGenerator : MonoBehaviour
                 triangles.Remove(triangles[i]);
             }
         }
+
+        //roomMap = new Dictionary<Room, List<Room>>();
 
         //for(int i = 0; i < rooms.Count; i++)
         //{
