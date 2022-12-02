@@ -1,6 +1,9 @@
+using Packages.Rider.Editor.UnitTesting;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.WindowsRuntime;
+using UnityEditor;
 using UnityEngine;
 
 public struct Circumsphere
@@ -339,5 +342,68 @@ public class DelaunayTriangulation
         //sphere.radius = Mathf.Abs((sphere.center - pointA).magnitude);
 
         return sphere;
+    }
+
+    public static List<Tetrahedron> Tetrahedralize(Tetrahedron superTetrahedron, List<Vector3> pointList)
+    {
+        List<Tetrahedron> tetrahedrons = new List<Tetrahedron>();
+
+        tetrahedrons.Add(superTetrahedron);
+
+        foreach (Vector3 point in pointList)
+        {
+            //Debug.Log("New Room");
+            List<Triangle> triangles = new List<Triangle>();
+
+            //Number of occurrences of each triangle (triangles that overlap between tetrahedrons)
+            //Dictionary<Triangle, int> badTriangles = new Dictionary<Triangle, int>();
+
+            //Find which tetrahedrons whose circumspheres contain the center of the room
+            //Log how many times each triangle occurs for checking which triangles to remove later on
+            foreach (Tetrahedron tet in tetrahedrons)
+            {
+                if (tet.CircumsphereContainsPoint(point))
+                {
+                    tet.isInvalid = true;
+
+                    Triangle[] tetTriangles = tet.GetTriangles();
+                    triangles.Add(tetTriangles[0]);
+                    triangles.Add(tetTriangles[1]);
+                    triangles.Add(tetTriangles[2]);
+                    triangles.Add(tetTriangles[3]);
+                }
+            }
+
+            //If same triangle is included in the circumsphere of multiple tetrahedrons, it should be removed
+            for (int i = 0; i < triangles.Count; i++)
+            {
+                for (int j = i + 1; j < triangles.Count; j++)
+                {
+                    if (triangles[i] == triangles[j])
+                    {
+                        triangles[i].isInvalid = true;
+                        triangles[j].isInvalid = true;
+                    }
+                }
+            }
+
+            //Remove invalid tetrahedrons and triangles
+            tetrahedrons.RemoveAll((Tetrahedron t) => t.isInvalid);
+            triangles.RemoveAll((Triangle t) => t.isInvalid);
+
+            //Create a new tetrahedron using each valid triangle and the room center
+            foreach (Triangle tri in triangles)
+            {
+                tetrahedrons.Add(new Tetrahedron(tri.pointA, tri.pointB, tri.pointC, point));
+            }
+        }
+
+        //Remove all tetrahedrons connected to the sueper tetrahedron
+        tetrahedrons.RemoveAll((Tetrahedron t) => t.ContainsVertex(superTetrahedron.pointA) ||
+                t.ContainsVertex(superTetrahedron.pointB) ||
+                t.ContainsVertex(superTetrahedron.pointC) ||
+                t.ContainsVertex(superTetrahedron.pointD));
+
+        return tetrahedrons;
     }
 }
