@@ -9,7 +9,7 @@ public struct Circumsphere
     public float radius;
 }
 
-public struct Edge : IEquatable<Edge>
+public class Edge : IEquatable<Edge>
 {
     public Vector3 pointA;
     public Vector3 pointB;
@@ -50,8 +50,9 @@ public struct Edge : IEquatable<Edge>
 }
 
 
-public struct Triangle : IEquatable<Triangle>
+public class Triangle : IEquatable<Triangle>
 {
+    public bool isInvalid = false;  //Only used in tetrahedralization
     public Vector3 pointA;
     public Vector3 pointB;
     public Vector3 pointC;
@@ -131,8 +132,9 @@ public struct Triangle : IEquatable<Triangle>
 }
 
 //Expand triangle to 3D
-public struct Tetrahedron
+public class Tetrahedron
 {
+    public bool isInvalid = false;  //Only used in tetrahedralization
     public Vector3 pointA;
     public Vector3 pointB;
     public Vector3 pointC;
@@ -152,10 +154,11 @@ public struct Tetrahedron
 
     public bool CircumsphereContainsPoint(Vector3 point)
     {
-        if (circumSphere.radius == 0)
-        {
-            circumSphere = DelaunayTriangulation.FindCircumcenter(this);
-        }
+        //if (circumSphere.radius == 0)
+        //{
+        //    circumSphere = DelaunayTriangulation.FindCircumcenter(this);
+        //}
+        circumSphere = DelaunayTriangulation.FindCircumcenter(this);
 
         if ((point - circumSphere.center).sqrMagnitude <= circumSphere.radius * circumSphere.radius)
         {
@@ -295,13 +298,13 @@ public class DelaunayTriangulation
 
         float ABLen = AB.sqrMagnitude, ACLen = AC.sqrMagnitude, ADLen = AD.sqrMagnitude;
 
-        sphere.center = new Vector3(    //The actual center of the circumsphere
+        sphere.center = tet.pointA + new Vector3(    //The actual center of the circumsphere
             (ABLen * ACCrossAD.x) + (ACLen * ADCrossAB.x) + (ADLen * ABCrossAC.x),
             (ABLen * ACCrossAD.y) + (ACLen * ADCrossAB.y) + (ADLen * ABCrossAC.y),
             (ABLen * ACCrossAD.z) + (ACLen * ADCrossAB.z) + (ADLen * ABCrossAC.z)
         ) * denominator;
 
-        sphere.radius = (sphere.center - tet.pointA).magnitude;    //Distance between sphere center and any point on triangle is the radius   
+        sphere.radius = Vector3.Distance(sphere.center, tet.pointA);    //Distance between sphere center and any point on triangle is the radius   
 
         //sphere.center = (Vector3.Cross(abCrossAC, ab) * ac.magnitude + Vector3.Cross(ac, abCrossAC) * ab.magnitude) / (2.0f * abCrossAC.magnitude);
         //sphere.radius = Mathf.Abs((sphere.center - pointA).magnitude);
@@ -324,13 +327,13 @@ public class DelaunayTriangulation
 
         float ABLen = AB.sqrMagnitude, ACLen = AC.sqrMagnitude, ADLen = AD.sqrMagnitude;
 
-        sphere.center = new Vector3(    //The actual center of the circumsphere
+        sphere.center = pointA + new Vector3(    //The actual center of the circumsphere
             (ABLen * ACCrossAD.x) + (ACLen * ADCrossAB.x) + (ADLen * ABCrossAC.x),
             (ABLen * ACCrossAD.y) + (ACLen * ADCrossAB.y) + (ADLen * ABCrossAC.y),
             (ABLen * ACCrossAD.z) + (ACLen * ADCrossAB.z) + (ADLen * ABCrossAC.z)
         ) * denominator;
 
-        sphere.radius = (sphere.center - pointA).magnitude;    //Distance between sphere center and any point on triangle is the radius   
+        sphere.radius = Vector3.Distance(sphere.center, pointA);    //Distance between sphere center and any point on triangle is the radius   
 
         //sphere.center = (Vector3.Cross(abCrossAC, ab) * ac.magnitude + Vector3.Cross(ac, abCrossAC) * ab.magnitude) / (2.0f * abCrossAC.magnitude);
         //sphere.radius = Mathf.Abs((sphere.center - pointA).magnitude);

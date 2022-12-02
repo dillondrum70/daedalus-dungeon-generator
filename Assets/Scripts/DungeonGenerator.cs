@@ -81,7 +81,6 @@ public class DungeonGenerator : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.Space))
         {
             Clear();
-            grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
             Generate();
         }
     }
@@ -95,6 +94,7 @@ public class DungeonGenerator : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
+        grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
     }
 
     void Generate()
@@ -123,7 +123,7 @@ public class DungeonGenerator : MonoBehaviour
                 UnityEngine.Random.Range(minSize.z, maxSize.z)
             );
 
-            //Ensure at least one floor will be on a different floor, ensures that tetrahedralization will not be degenerate
+            //Ensure at least one room will be on a different floor, ensures that tetrahedralization will not be degenerate
             if(i == 0)
             {
                 randPos.y = 0;
@@ -148,48 +148,27 @@ public class DungeonGenerator : MonoBehaviour
                 //Loop through random size to add rooms and make the one room the size of randSize
                 for (int j = 0; j < randSize.x; j++)
                 {
-                    //Break early if outside of dimensions
-                    if (gridIndices.x + j >= GridDimensions.x)
-                    {
-                        break;
-                    }
-
                     for (int k = 0; k < randSize.y; k++)
                     {
-                        //Break early if outside of dimensions
-                        if (gridIndices.y + k >= GridDimensions.y)
-                        {
-                            break;
-                        }
-
                         for (int l = 0; l < randSize.z; l++)
                         {
-                            if (gridIndices.z + l >= GridDimensions.z)
-                            {
-                                break;
-                            }
-
-                            Vector3 currentIndices = gridIndices + new Vector3(j, k, l);
-                            //Check that grid space exists
-                            //if (currentIndices.x < GridDimensions.x && currentIndices.x >= 0 &&
-                            //    currentIndices.y < GridDimensions.y && currentIndices.y >= 0 &&
-                            //    currentIndices.z < GridDimensions.z && currentIndices.z >= 0)
-                            //{
                             //Get index of current space based on first grid index (gridIndices) plus the indices of (j, k, l)
+                            Vector3 currentIndices = gridIndices + new Vector3(j, k, l);
+
+                            //Check that placing a room here is a valid action
+                            if(!grid.CanPlaceRoom(currentIndices, newRoom))
+                            {
+                                continue;
+                            }
 
                             Vector3 currentCenter = grid.GetCenterByIndices(currentIndices);
 
-                            //If cell is not filled, fill it
-                            if (grid.GetCell(currentIndices).cellType == CellTypes.NONE)
-                            {
-                                grid.GetCell(currentIndices).cellType = CellTypes.ROOM;
-                                newRoom.cells.Add(grid.GetCell(currentIndices));
+                            grid.GetCell(currentIndices).cellType = CellTypes.ROOM;
+                            newRoom.cells.Add(grid.GetCell(currentIndices));
 
-                                Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent.transform).transform;
+                            Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent.transform).transform;
 
-                                trans.localScale = CellDimensions;
-                            }
-                            //}
+                            trans.localScale = CellDimensions;
                         }
                     }
                 }
@@ -239,9 +218,8 @@ public class DungeonGenerator : MonoBehaviour
 
     void CreateConnectedMap()
     {
-        tetrahedrons.Clear();
         superTetrahedron = new Tetrahedron(
-            new Vector3(-cellWidth, -cellHeight, -cellDepth),
+            new Vector3(-cellWidth * cellCountX, -cellHeight * cellCountY, -cellDepth * cellCountZ) * 2,
             new Vector3(cellWidth * cellCountX * 4, -cellHeight, -cellDepth),
             new Vector3(-cellWidth, cellHeight * cellCountY * 4, -cellDepth),
             new Vector3(-cellWidth, -cellHeight, cellDepth * cellCountZ * 4)
@@ -257,10 +235,10 @@ public class DungeonGenerator : MonoBehaviour
         foreach (Room room in rooms)
         {
             //Debug.Log("New Room");
-            List<Tetrahedron> containing = new List<Tetrahedron>();
+            List<Triangle> triangles = new List<Triangle>();
 
             //Number of occurrences of each triangle (triangles that overlap between tetrahedrons)
-            Dictionary<Triangle, int> occurrences = new Dictionary<Triangle, int>();
+            //Dictionary<Triangle, int> badTriangles = new Dictionary<Triangle, int>();
 
             //Find which tetrahedrons whose circumspheres contain the center of the room
             //Log how many times each triangle occurs for checking which triangles to remove later on
@@ -268,95 +246,44 @@ public class DungeonGenerator : MonoBehaviour
             {
                 if(tet.CircumsphereContainsPoint(room.center))
                 {
-                    containing.Add(tet);
+                    tet.isInvalid = true;
 
-                    Triangle[] triangles = tet.GetTriangles();
-
-                    if (occurrences.TryGetValue(triangles[0], out int numA))
-                    {
-                        occurrences[triangles[0]]++;
-                    }
-                    else
-                    {
-                        occurrences.Add(triangles[0], 1);
-                    }
-
-                    if (occurrences.TryGetValue(triangles[1], out int numB))
-                    {
-                        occurrences[triangles[1]]++;
-                    }
-                    else
-                    {
-                        occurrences.Add(triangles[1], 1);
-                    }
-
-                    if (occurrences.TryGetValue(triangles[2], out int numC))
-                    {
-                        occurrences[triangles[2]]++;
-                    }
-                    else
-                    {
-                        occurrences.Add(triangles[2], 1);
-                    }
-
-                    if (occurrences.TryGetValue(triangles[3], out int numD))
-                    {
-                        occurrences[triangles[3]]++;
-                    }
-                    else
-                    {
-                        occurrences.Add(triangles[3], 1);
-                    }
+                    Triangle[] tetTriangles = tet.GetTriangles();
+                    triangles.Add(tetTriangles[0]);
+                    triangles.Add(tetTriangles[1]);
+                    triangles.Add(tetTriangles[2]);
+                    triangles.Add(tetTriangles[3]);
                 }
             }
 
-            //triangles are just three points from a tetrahedrons, each tetrahedron has 4 triangles
-            //If an triangle is shared by another tetrahedron, we do not add the edge to shape
-            //We log the occurrences of triangles between tetrahedrons when we first add them to "containing"
-            List<Triangle> shape = new List<Triangle>();
-            foreach (Tetrahedron tet in containing)
+            //If same triangle is included in the circumsphere of multiple tetrahedrons, it should be removed
+            for(int i = 0; i < triangles.Count; i++)
             {
-                Triangle[] triangles = tet.GetTriangles();
-
-                foreach(Triangle tri in triangles)
+                for(int j = i + 1; j < triangles.Count; j++)
                 {
-                    if (!(occurrences[tri] > 1))
+                    if (triangles[i] == triangles[j])
                     {
-                        shape.Add(tri);
+                        triangles[i].isInvalid = true;
+                        triangles[j].isInvalid = true;
                     }
                 }
             }
 
-            //Remove tetrahedrons in containing from structure of all triangles 
-            foreach (Tetrahedron tet in containing)
-            {
-                tetrahedrons.Remove(tet);
-            }
+            //Remove invalid tetrahedrons and triangles
+            tetrahedrons.RemoveAll((Tetrahedron t) => t.isInvalid);
+            triangles.RemoveAll((Triangle t) => t.isInvalid);
 
             //Create a new tetrahedron using each valid triangle and the room center
-            foreach (Triangle tri in shape)
+            foreach (Triangle tri in triangles)
             {
                 tetrahedrons.Add(new Tetrahedron(tri.pointA, tri.pointB, tri.pointC, room.center));
             }
-            Debug.Log("New");
-            foreach(KeyValuePair<Triangle, int> pair in occurrences)
-            {
-                Debug.Log(pair.Value + " - " + pair.Key.pointA + " : " + pair.Key.pointB + " : " + pair.Key.pointC);
-            }
         }
-
         int before = tetrahedrons.Count;
-        //Delete all tetrahedrons connecting to super tetrahedron
-        for (int i = tetrahedrons.Count - 1; i >= 0; i--)
-        {
-            if (tetrahedrons[i].ContainsVertex(superTetrahedron.pointA) ||
-                tetrahedrons[i].ContainsVertex(superTetrahedron.pointB) ||
-                tetrahedrons[i].ContainsVertex(superTetrahedron.pointC) ||
-                tetrahedrons[i].ContainsVertex(superTetrahedron.pointD))
-            {
-                //tetrahedrons.Remove(tetrahedrons[i]);
-            }
-        }
+        tetrahedrons.RemoveAll((Tetrahedron t) => t.ContainsVertex(superTetrahedron.pointA) ||
+                t.ContainsVertex(superTetrahedron.pointB) ||
+                t.ContainsVertex(superTetrahedron.pointC) ||
+                t.ContainsVertex(superTetrahedron.pointD));
 
         Debug.Log(before + " -> " + tetrahedrons.Count);
 
@@ -404,9 +331,10 @@ public class DungeonGenerator : MonoBehaviour
         if (Application.isPlaying)
         {
 
-            //Tetrahedron tet = new Tetrahedron(Vector3.zero, Vector3.up, Vector3.right, Vector3.forward);
-            //tet.DrawGizmos();
-            //Gizmos.DrawSphere(tet.circumSphere.center, tet.circumSphere.radius);
+            //Tetrahedron test = new Tetrahedron(Vector3.zero, Vector3.up * 4, Vector3.right, Vector3.forward);
+            //test.DrawGizmos();
+            //Gizmos.DrawSphere(test.circumSphere.center, test.circumSphere.radius);
+
             //Triangle triangle = new Triangle(rooms[0].center, rooms[1].center, rooms[2].center);
             //Circumsphere sphere = DelaunayTriangulation.FindCircumcenter(triangle);
 
@@ -428,24 +356,8 @@ public class DungeonGenerator : MonoBehaviour
                 tet.DrawGizmos();
             }
 
-            List<Tetrahedron> tempTets = new List<Tetrahedron>(tetrahedrons);
-            for (int i = tempTets.Count - 1; i >= 0; i--)
-            {
-                if (tempTets[i].ContainsVertex(superTetrahedron.pointA) ||
-                    tempTets[i].ContainsVertex(superTetrahedron.pointB) ||
-                    tempTets[i].ContainsVertex(superTetrahedron.pointC) ||
-                    tempTets[i].ContainsVertex(superTetrahedron.pointD))
-                {
-                    tempTets.Remove(tempTets[i]);
-                }
-            }
-
-            foreach (Tetrahedron tet in tempTets)
-            {
-                //Room currentRoom = pair.Key;
-                Gizmos.color = Color.green;
-                tet.DrawGizmos();
-            }
+            //Gizmos.DrawSphere(superTetrahedron.circumSphere.center, superTetrahedron.circumSphere.radius);
+            //superTetrahedron.DrawGizmos();
 
             //foreach (Tetrahedron tet in tetrahedrons)
             //{
