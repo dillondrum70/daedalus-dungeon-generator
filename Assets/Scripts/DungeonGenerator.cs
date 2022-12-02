@@ -84,14 +84,14 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] int cellCountY = 10;
     [SerializeField] int cellCountZ = 10;
 
-    List<Tetrahedron> tetrahedrons = new List<Tetrahedron>();
-
     public Vector3 GridDimensions
     {
         get { return new Vector3(cellCountX, cellCountY, cellCountZ); }
     }
 
     [SerializeField] List<Room> rooms;
+
+    List<Tetrahedron> tetrahedrons = new List<Tetrahedron>();
 
     Tetrahedron superTetrahedron;
 
@@ -247,6 +247,7 @@ public class DungeonGenerator : MonoBehaviour
 
     void CreateConnectedMap()
     {
+
         superTetrahedron = new Tetrahedron(
             new Vector3(-cellWidth * cellCountX, -cellHeight * cellCountY, -cellDepth * cellCountZ) * 2,
             new Vector3(cellWidth * cellCountX * 4, -cellHeight, -cellDepth),
@@ -255,69 +256,23 @@ public class DungeonGenerator : MonoBehaviour
         );
 
         //Define super tetrahedron that contains all rooms
-        tetrahedrons.Add(superTetrahedron);
+        //tetrahedrons.Add(superTetrahedron);
 
-        //Debug.DrawLine(superTriangle.pointA, superTriangle.pointB, Color.red, 9999999.9f);
-        //Debug.DrawLine(superTriangle.pointA, superTriangle.pointC, Color.red, 9999999.9f);
-        //Debug.DrawLine(superTriangle.pointC, superTriangle.pointB, Color.red, 9999999.9f);
-
-        foreach (Room room in rooms)
+        List<Vector3> pointList = new List<Vector3>();
+        foreach(Room room in rooms)
         {
-            //Debug.Log("New Room");
-            List<Triangle> triangles = new List<Triangle>();
-
-            //Number of occurrences of each triangle (triangles that overlap between tetrahedrons)
-            //Dictionary<Triangle, int> badTriangles = new Dictionary<Triangle, int>();
-
-            //Find which tetrahedrons whose circumspheres contain the center of the room
-            //Log how many times each triangle occurs for checking which triangles to remove later on
-            foreach (Tetrahedron tet in tetrahedrons)
-            {
-                if(tet.CircumsphereContainsPoint(room.center))
-                {
-                    tet.isInvalid = true;
-
-                    Triangle[] tetTriangles = tet.GetTriangles();
-                    triangles.Add(tetTriangles[0]);
-                    triangles.Add(tetTriangles[1]);
-                    triangles.Add(tetTriangles[2]);
-                    triangles.Add(tetTriangles[3]);
-                }
-            }
-
-            //If same triangle is included in the circumsphere of multiple tetrahedrons, it should be removed
-            for(int i = 0; i < triangles.Count; i++)
-            {
-                for(int j = i + 1; j < triangles.Count; j++)
-                {
-                    if (triangles[i] == triangles[j])
-                    {
-                        triangles[i].isInvalid = true;
-                        triangles[j].isInvalid = true;
-                    }
-                }
-            }
-
-            //Remove invalid tetrahedrons and triangles
-            tetrahedrons.RemoveAll((Tetrahedron t) => t.isInvalid);
-            triangles.RemoveAll((Triangle t) => t.isInvalid);
-
-            //Create a new tetrahedron using each valid triangle and the room center
-            foreach (Triangle tri in triangles)
-            {
-                tetrahedrons.Add(new Tetrahedron(tri.pointA, tri.pointB, tri.pointC, room.center));
-            }
+            pointList.Add(room.center);
         }
-        
-        //Remove all tetrahedrons connected to the sueper tetrahedron
-        tetrahedrons.RemoveAll((Tetrahedron t) => t.ContainsVertex(superTetrahedron.pointA) ||
-                t.ContainsVertex(superTetrahedron.pointB) ||
-                t.ContainsVertex(superTetrahedron.pointC) ||
-                t.ContainsVertex(superTetrahedron.pointD));
 
+        //Perform tetrahedralization
+        tetrahedrons = DelaunayTriangulation.Tetrahedralize(superTetrahedron, pointList);
+
+        Debug.Log(tetrahedrons.Count);
+
+        //Will store total edges in tetrahedralization excluding duplicates
         Dictionary<Edge, int> totalEdges = new Dictionary<Edge, int>();
 
-        //Count up each edge in tetrahedralization once
+        //Count up each edge in tetrahedralization once to remove duplicates
         foreach(Tetrahedron tet in tetrahedrons)
         {
             Edge[] edges = tet.GetEdges();
@@ -336,8 +291,6 @@ public class DungeonGenerator : MonoBehaviour
         {
             if (pair.Value > 0)
             {
-                
-
                 Room room1 = null;
                 Room room2 = null;
 
@@ -369,10 +322,17 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
-        ////Delete edges that pass through other rooms
+        ////Delete edges that pass through other rooms, this happens because tetrahedralization deals with points but we deal with rooms that have sizes
         //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
         //{
-            
+        //    foreach(Room room in pair.Value)
+        //    {
+        //        Ray ray = new Ray(room.center, pair.Key.center - room.center);
+        //        if(Physics.Raycast(ray, out RaycastHit data))
+        //        {
+                        //Not going to worry about how to get it to understand which room objects belong to which rooms yet for raycast
+        //        }
+        //    }
         //}
     }
 
@@ -414,16 +374,16 @@ public class DungeonGenerator : MonoBehaviour
             //triangles[0].DrawGizmos();
             //Gizmos.DrawSphere(sphere.center, sphere.radius);
 
-            //foreach (Tetrahedron tet in tetrahedrons)
-            //{
-            //    //Room currentRoom = pair.Key;
-            //    Gizmos.color = Color.red;
-            //    tet.DrawGizmos();
-            //}
+            foreach (Tetrahedron tet in tetrahedrons)
+            {
+                //Room currentRoom = pair.Key;
+                Gizmos.color = Color.red;
+                tet.DrawGizmos();
+            }
 
             foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
             {
-                Gizmos.color = Color.red;
+                Gizmos.color = Color.green;
                 foreach (Room room in pair.Value)
                 {
                     Gizmos.DrawLine(pair.Key.center, room.center);
