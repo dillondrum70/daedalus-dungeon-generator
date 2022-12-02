@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public class Room
+public class Room : IEquatable<Room>
 {
     //lowest x, y, and z valued cell in room
     //Cell parentCell;
@@ -29,6 +29,24 @@ public class Room
 
         center = avgPos;
     }
+
+    public bool Equals(Room other)
+    {
+        return this == other;
+    }
+
+    //We could go in depth here and check if each cell is equivalent, but in reality, rooms should theoretically never have the same center so we shouldn't need to worry
+    public static bool operator ==(Room lhs, Room rhs)
+        => (lhs.center == rhs.center) && (lhs.cells.Count == rhs.cells.Count);
+
+    public static bool operator !=(Room lhs, Room rhs)
+        => !(lhs == rhs);
+
+    //public static bool operator ==(Room lhs, Edge rhs)
+    //    => ((lhs.center == rhs.pointA) || (lhs.center == rhs.pointB));
+
+    //public static bool operator !=(Room lhs, Edge rhs)
+    //    => !(lhs == rhs);
 }
 
 public class DungeonGenerator : MonoBehaviour
@@ -67,7 +85,8 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] List<Room> rooms;
 
     Tetrahedron superTetrahedron;
-    //Dictionary<Room, List<Room>> roomMap;
+
+    Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
     private void Start()
     {
@@ -90,6 +109,7 @@ public class DungeonGenerator : MonoBehaviour
         //Empty all arrays and delete all current rooms
         tetrahedrons.Clear();
         rooms.Clear();
+        roomMap.Clear();
         foreach(Transform child in roomParent.transform)
         {
             Destroy(child.gameObject);
@@ -279,36 +299,63 @@ public class DungeonGenerator : MonoBehaviour
                 tetrahedrons.Add(new Tetrahedron(tri.pointA, tri.pointB, tri.pointC, room.center));
             }
         }
-        int before = tetrahedrons.Count;
+        
+        //Remove all tetrahedrons connected to the sueper tetrahedron
         tetrahedrons.RemoveAll((Tetrahedron t) => t.ContainsVertex(superTetrahedron.pointA) ||
                 t.ContainsVertex(superTetrahedron.pointB) ||
                 t.ContainsVertex(superTetrahedron.pointC) ||
                 t.ContainsVertex(superTetrahedron.pointD));
 
-        Debug.Log(before + " -> " + tetrahedrons.Count);
+        Dictionary<Edge, int> totalEdges = new Dictionary<Edge, int>();
 
-        //roomMap = new Dictionary<Room, List<Room>>();
+        //Count up each edge in tetrahedralization once
+        foreach(Tetrahedron tet in tetrahedrons)
+        {
+            Edge[] edges = tet.GetEdges();
 
-        //for(int i = 0; i < rooms.Count; i++)
-        //{
-        //    for(int j = i; j < rooms.Count; j++)
-        //    {
-        //        //Try to get value, if succeed, add room, if fail, add new entry to dictionary with room
-        //        if (roomMap.TryGetValue(rooms[i], out List<Room> roomList))
-        //        {
-        //            roomList.Add(rooms[j]);
-        //        }
-        //        else
-        //        {
-        //            roomMap.Add(rooms[i], new List<Room> { rooms[j] });
-        //        }
-        //    }
-        //}
+            foreach(Edge e in edges)
+            {
+                if(!totalEdges.TryGetValue(e, out int i))
+                {
+                    totalEdges.Add(e, 1);
+                }
+            }
+        }
 
-        //foreach(KeyValuePair<Room, List<Room>> pair in roomMap)
-        //{
-        //    Debug.Log(roomMap[pair.Key].Count);
-        //}
+        foreach(KeyValuePair<Edge, int> pair in totalEdges)
+        {
+            if(pair.Value > 0)
+            {
+                Room room1 = null;
+                Room room2 = null;
+
+                foreach(Room room in rooms)
+                {
+                    if(room.center == pair.Key.pointA)
+                    {
+                        room1 = room;
+                    }
+                    else if(room.center == pair.Key.pointB)
+                    {
+                        room2 = room;
+                    }
+                }
+
+                if(room1 != null && room2 != null)
+                {
+                    if(roomMap.TryGetValue(room1, out List<Room> roomList))
+                    {
+                        roomList.Add(room2);
+                    }
+                    else
+                    {
+                        List<Room> newRooms = new List<Room>();
+                        newRooms.Add(room2);
+                        roomMap.Add(room1, newRooms);
+                    }
+                }
+            }
+        }
     }
 
     void DerriveMinimumSpanningTree()
@@ -349,11 +396,20 @@ public class DungeonGenerator : MonoBehaviour
             //triangles[0].DrawGizmos();
             //Gizmos.DrawSphere(sphere.center, sphere.radius);
 
-            foreach (Tetrahedron tet in tetrahedrons)
+            //foreach (Tetrahedron tet in tetrahedrons)
+            //{
+            //    //Room currentRoom = pair.Key;
+            //    Gizmos.color = Color.red;
+            //    tet.DrawGizmos();
+            //}
+
+            foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
             {
-                //Room currentRoom = pair.Key;
                 Gizmos.color = Color.red;
-                tet.DrawGizmos();
+                foreach (Room room in pair.Value)
+                {
+                    Gizmos.DrawLine(pair.Key.center, room.center);
+                }
             }
 
             //Gizmos.DrawSphere(superTetrahedron.circumSphere.center, superTetrahedron.circumSphere.radius);
