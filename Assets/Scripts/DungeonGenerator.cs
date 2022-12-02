@@ -70,6 +70,25 @@ public class DungeonGenerator : MonoBehaviour
 
     private void Start()
     {
+        Edge a = new Edge(new Vector3(100.0f, 50.0f, 50.0f), new Vector3(50.0f, 50.0f, 100.0f));
+        Edge b = new Edge(new Vector3(50.0f, 50.0f, 100.0f), new Vector3(100.0f, 50.0f, 50.0f));
+        Debug.Log(a.GetHashCode());
+        Debug.Log(b.GetHashCode());
+        Debug.Log(a.Equals(b));
+        Debug.Log(b.Equals(a));
+        Dictionary<Edge, int> temp = new();
+        
+        temp.Add(a, 1);
+        if (temp.TryGetValue(b, out int numB))
+        {
+            temp[b]++;
+        }
+        else
+        {
+            temp.Add(b, 1);
+        }
+        Debug.Log(temp[a] + "  " + temp[b]);
+
         grid = GetComponent<Grid>();
         grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
         Generate();
@@ -335,7 +354,7 @@ public class DungeonGenerator : MonoBehaviour
                triangles[i].pointB == superTriangle.pointC ||
                triangles[i].pointC == superTriangle.pointC)
             {
-                //triangles.Remove(triangles[i]);
+                triangles.Remove(triangles[i]);
             }
         }
 

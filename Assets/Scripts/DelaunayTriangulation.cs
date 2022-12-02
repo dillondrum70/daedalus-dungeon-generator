@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,7 +9,7 @@ public struct Circumsphere
     public float radius;
 }
 
-public struct Edge
+public struct Edge : IEquatable<Edge>
 {
     public Vector3 pointA;
     public Vector3 pointB;
@@ -26,16 +27,28 @@ public struct Edge
     public static bool operator !=(Edge lhs, Edge rhs)
         => (lhs.pointA != rhs.pointA) || (lhs.pointB != rhs.pointB) &&
            ((lhs.pointA != rhs.pointB) || (lhs.pointB != rhs.pointA));
-    //public bool Equals(Edge e)
+    public bool Equals(Edge e)
+    {
+        return this == e;
+    }
+
+    public override int GetHashCode()
+    {
+        return pointA.GetHashCode() ^ pointB.GetHashCode();
+    }
+
+    //bool IEqualityComparer<Edge>.Equals(Edge a, Edge b)
     //{
-    //    return this == e;
+    //    return ((a.pointA == b.pointA) && (a.pointB == b.pointB)) ||
+    //       ((a.pointA == b.pointB) && (a.pointB == b.pointA));
     //}
 
-    //public override int GetHashCode()
+    //int IEqualityComparer<Edge>.GetHashCode(Edge obj)
     //{
-    //    return pointA.GetHashCode() ^ pointB.GetHashCode();
+    //    return obj.pointA.GetHashCode() ^ obj.pointB.GetHashCode();
     //}
 }
+
 
 public struct Triangle
 {
