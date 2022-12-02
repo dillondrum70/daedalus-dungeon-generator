@@ -392,13 +392,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   room: {fileID: 8132880929042404955, guid: 2258075479def3b49b6ed56f2b57eec5, type: 3}
   roomParent: {fileID: 1240957116}
-  numRandomRooms: 2
+  numRandomRooms: 4
   maxSize: {x: 3, y: 1, z: 3}
   minSize: {x: 1, y: 1, z: 1}
   cellWidth: 2
   cellHeight: 2
   cellDepth: 2
   cellCountX: 20
-  cellCountY: 1
+  cellCountY: 2
   cellCountZ: 20
   rooms: []

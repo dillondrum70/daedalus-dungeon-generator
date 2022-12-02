@@ -57,7 +57,7 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] int cellCountY = 10;
     [SerializeField] int cellCountZ = 10;
 
-    List<Triangle> triangles = new List<Triangle>();
+    List<Tetrahedron> tetrahedrons = new List<Tetrahedron>();
 
     public Vector3 GridDimensions
     {
@@ -66,29 +66,11 @@ public class DungeonGenerator : MonoBehaviour
 
     [SerializeField] List<Room> rooms;
 
+    Tetrahedron superTetrahedron;
     //Dictionary<Room, List<Room>> roomMap;
 
     private void Start()
     {
-        Edge a = new Edge(new Vector3(100.0f, 50.0f, 50.0f), new Vector3(50.0f, 50.0f, 100.0f));
-        Edge b = new Edge(new Vector3(50.0f, 50.0f, 100.0f), new Vector3(100.0f, 50.0f, 50.0f));
-        Debug.Log(a.GetHashCode());
-        Debug.Log(b.GetHashCode());
-        Debug.Log(a.Equals(b));
-        Debug.Log(b.Equals(a));
-        Dictionary<Edge, int> temp = new();
-        
-        temp.Add(a, 1);
-        if (temp.TryGetValue(b, out int numB))
-        {
-            temp[b]++;
-        }
-        else
-        {
-            temp.Add(b, 1);
-        }
-        Debug.Log(temp[a] + "  " + temp[b]);
-
         grid = GetComponent<Grid>();
         grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
         Generate();
@@ -107,7 +89,7 @@ public class DungeonGenerator : MonoBehaviour
     void Clear()
     {
         //Empty all arrays and delete all current rooms
-        triangles.Clear();
+        tetrahedrons.Clear();
         rooms.Clear();
         foreach(Transform child in roomParent.transform)
         {
@@ -140,6 +122,18 @@ public class DungeonGenerator : MonoBehaviour
                 UnityEngine.Random.Range(minSize.y, maxSize.y),
                 UnityEngine.Random.Range(minSize.z, maxSize.z)
             );
+
+            //Ensure at least one floor will be on a different floor, ensures that tetrahedralization will not be degenerate
+            if(i == 0)
+            {
+                randPos.y = 0;
+                randSize.y = 1;
+            }
+            else if(i == 1)
+            {
+                randPos.y = GridDimensions.y;
+                randSize.y = 1;
+            }
 
             Vector3 gridCenter = grid.GetCenter(randPos);
             Vector3 gridIndices = grid.GetGridIndices(randPos);
@@ -245,15 +239,16 @@ public class DungeonGenerator : MonoBehaviour
 
     void CreateConnectedMap()
     {
-        triangles.Clear();
-        Triangle superTriangle = new Triangle(
-            new Vector3(-cellWidth * cellCountX, -cellHeight * cellCountY, -cellDepth * cellCountZ),
-            new Vector3(cellWidth * cellCountX * 2, -CellDimensions.y, -CellDimensions.z),
-            new Vector3(-CellDimensions.x, cellHeight * cellCountY * 2, cellDepth * cellCountZ * 2)
+        tetrahedrons.Clear();
+        superTetrahedron = new Tetrahedron(
+            new Vector3(-cellWidth, -cellHeight, -cellDepth),
+            new Vector3(cellWidth * cellCountX * 4, -cellHeight, -cellDepth),
+            new Vector3(-cellWidth, cellHeight * cellCountY * 4, -cellDepth),
+            new Vector3(-cellWidth, -cellHeight, cellDepth * cellCountZ * 4)
         );
 
-        //Define super triangle that contains all rooms
-        triangles.Add(superTriangle);
+        //Define super tetrahedron that contains all rooms
+        tetrahedrons.Add(superTetrahedron);
 
         //Debug.DrawLine(superTriangle.pointA, superTriangle.pointB, Color.red, 9999999.9f);
         //Debug.DrawLine(superTriangle.pointA, superTriangle.pointC, Color.red, 9999999.9f);
@@ -262,101 +257,108 @@ public class DungeonGenerator : MonoBehaviour
         foreach (Room room in rooms)
         {
             //Debug.Log("New Room");
-            List<Triangle> containing = new List<Triangle>();
+            List<Tetrahedron> containing = new List<Tetrahedron>();
 
-            //Number of occurrences of each point (points that overlap between triangles)
-            Dictionary<Edge, int> occurrences = new Dictionary<Edge, int>();
+            //Number of occurrences of each triangle (triangles that overlap between tetrahedrons)
+            Dictionary<Triangle, int> occurrences = new Dictionary<Triangle, int>();
 
-            //Find which triangles whose circumspheres contain the center of the room
-            //Log how many times each edge occurs for checking which edges to remove later on
-            foreach(Triangle tri in triangles)
+            //Find which tetrahedrons whose circumspheres contain the center of the room
+            //Log how many times each triangle occurs for checking which triangles to remove later on
+            foreach (Tetrahedron tet in tetrahedrons)
             {
-                if(tri.CircumsphereContainsPoint(room.center))
+                if(tet.CircumsphereContainsPoint(room.center))
                 {
-                    containing.Add(tri);
+                    containing.Add(tet);
 
-                    Edge[] edges = tri.GetEdges();
+                    Triangle[] triangles = tet.GetTriangles();
 
-                    if (occurrences.TryGetValue(edges[0], out int numA))
+                    if (occurrences.TryGetValue(triangles[0], out int numA))
                     {
-                        occurrences[edges[0]]++;
+                        occurrences[triangles[0]]++;
                     }
                     else
                     {
-                        occurrences.Add(edges[0], 1);
+                        occurrences.Add(triangles[0], 1);
                     }
 
-                    if (occurrences.TryGetValue(edges[1], out int numB))
+                    if (occurrences.TryGetValue(triangles[1], out int numB))
                     {
-                        occurrences[edges[1]]++;
+                        occurrences[triangles[1]]++;
                     }
                     else
                     {
-                        occurrences.Add(edges[1], 1);
+                        occurrences.Add(triangles[1], 1);
                     }
 
-                    if (occurrences.TryGetValue(edges[2], out int numC))
+                    if (occurrences.TryGetValue(triangles[2], out int numC))
                     {
-                        occurrences[edges[2]]++;
+                        occurrences[triangles[2]]++;
                     }
                     else
                     {
-                        occurrences.Add(edges[2], 1);
+                        occurrences.Add(triangles[2], 1);
                     }
-                }
-            }
-            
-            //Edges are just two points from a triangle, each triangle has 3 edges
-            //If an edge is shared by another triangle, we do not add the edge to polygon
-            //We log the occurrences of edges between triangles when we first add them to "containing"
-            List<Edge> polygon = new List<Edge>();
-            foreach (Triangle tri in containing)
-            {
-                Edge[] edges = tri.GetEdges();
 
-                foreach(Edge edge in edges)
-                {
-                    if (!(occurrences[edge] > 1))
+                    if (occurrences.TryGetValue(triangles[3], out int numD))
                     {
-                        polygon.Add(edge);
+                        occurrences[triangles[3]]++;
+                    }
+                    else
+                    {
+                        occurrences.Add(triangles[3], 1);
                     }
                 }
             }
 
-            //Remove triangles in containing from structure of all triangles 
-            foreach (Triangle tri in containing)
+            //triangles are just three points from a tetrahedrons, each tetrahedron has 4 triangles
+            //If an triangle is shared by another tetrahedron, we do not add the edge to shape
+            //We log the occurrences of triangles between tetrahedrons when we first add them to "containing"
+            List<Triangle> shape = new List<Triangle>();
+            foreach (Tetrahedron tet in containing)
             {
-                triangles.Remove(tri);
+                Triangle[] triangles = tet.GetTriangles();
+
+                foreach(Triangle tri in triangles)
+                {
+                    if (!(occurrences[tri] > 1))
+                    {
+                        shape.Add(tri);
+                    }
+                }
             }
 
-            //Create a new triangle using each valid edge and the room center
-            foreach (Edge edge in polygon)
+            //Remove tetrahedrons in containing from structure of all triangles 
+            foreach (Tetrahedron tet in containing)
             {
-                triangles.Add(new Triangle(edge.pointA, edge.pointB, room.center));
+                tetrahedrons.Remove(tet);
+            }
+
+            //Create a new tetrahedron using each valid triangle and the room center
+            foreach (Triangle tri in shape)
+            {
+                tetrahedrons.Add(new Tetrahedron(tri.pointA, tri.pointB, tri.pointC, room.center));
             }
             Debug.Log("New");
-            foreach(KeyValuePair<Edge, int> pair in occurrences)
+            foreach(KeyValuePair<Triangle, int> pair in occurrences)
             {
-                Debug.Log(pair.Value + " - " + pair.Key.pointA + " : " + pair.Key.pointB);
+                Debug.Log(pair.Value + " - " + pair.Key.pointA + " : " + pair.Key.pointB + " : " + pair.Key.pointC);
             }
         }
 
-        //Delete all triangles connecting to super triangle
-        for(int i = triangles.Count - 1; i >= 0; i--)
+        int before = tetrahedrons.Count;
+        //Delete all tetrahedrons connecting to super tetrahedron
+        for (int i = tetrahedrons.Count - 1; i >= 0; i--)
         {
-            if (triangles[i].pointA == superTriangle.pointA ||
-               triangles[i].pointB == superTriangle.pointA ||
-               triangles[i].pointC == superTriangle.pointA ||
-               triangles[i].pointA == superTriangle.pointB ||
-               triangles[i].pointB == superTriangle.pointB ||
-               triangles[i].pointC == superTriangle.pointB ||
-               triangles[i].pointA == superTriangle.pointC ||
-               triangles[i].pointB == superTriangle.pointC ||
-               triangles[i].pointC == superTriangle.pointC)
+            if (tetrahedrons[i].ContainsVertex(superTetrahedron.pointA) ||
+                tetrahedrons[i].ContainsVertex(superTetrahedron.pointB) ||
+                tetrahedrons[i].ContainsVertex(superTetrahedron.pointC) ||
+                tetrahedrons[i].ContainsVertex(superTetrahedron.pointD))
             {
-                triangles.Remove(triangles[i]);
+                //tetrahedrons.Remove(tetrahedrons[i]);
             }
         }
+
+        Debug.Log(before + " -> " + tetrahedrons.Count);
 
         //roomMap = new Dictionary<Room, List<Room>>();
 
@@ -399,8 +401,12 @@ public class DungeonGenerator : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if(Application.isPlaying)
+        if (Application.isPlaying)
         {
+
+            //Tetrahedron tet = new Tetrahedron(Vector3.zero, Vector3.up, Vector3.right, Vector3.forward);
+            //tet.DrawGizmos();
+            //Gizmos.DrawSphere(tet.circumSphere.center, tet.circumSphere.radius);
             //Triangle triangle = new Triangle(rooms[0].center, rooms[1].center, rooms[2].center);
             //Circumsphere sphere = DelaunayTriangulation.FindCircumcenter(triangle);
 
@@ -415,14 +421,48 @@ public class DungeonGenerator : MonoBehaviour
             //triangles[0].DrawGizmos();
             //Gizmos.DrawSphere(sphere.center, sphere.radius);
 
-            foreach (Triangle tri in triangles)
+            foreach (Tetrahedron tet in tetrahedrons)
             {
                 //Room currentRoom = pair.Key;
                 Gizmos.color = Color.red;
-                Gizmos.DrawLine(tri.pointA, tri.pointB);
-                Gizmos.DrawLine(tri.pointA, tri.pointC);
-                Gizmos.DrawLine(tri.pointC, tri.pointB);
+                tet.DrawGizmos();
             }
+
+            List<Tetrahedron> tempTets = new List<Tetrahedron>(tetrahedrons);
+            for (int i = tempTets.Count - 1; i >= 0; i--)
+            {
+                if (tempTets[i].ContainsVertex(superTetrahedron.pointA) ||
+                    tempTets[i].ContainsVertex(superTetrahedron.pointB) ||
+                    tempTets[i].ContainsVertex(superTetrahedron.pointC) ||
+                    tempTets[i].ContainsVertex(superTetrahedron.pointD))
+                {
+                    tempTets.Remove(tempTets[i]);
+                }
+            }
+
+            foreach (Tetrahedron tet in tempTets)
+            {
+                //Room currentRoom = pair.Key;
+                Gizmos.color = Color.green;
+                tet.DrawGizmos();
+            }
+
+            //foreach (Tetrahedron tet in tetrahedrons)
+            //{
+            //    //Room currentRoom = pair.Key;
+            //    Gizmos.color = Color.red;
+            //    tet.DrawGizmos();
+            //    Gizmos.DrawSphere(tet.circumSphere.center, tet.circumSphere.radius);
+            //}
+
+            //foreach (Triangle tri in triangles)
+            //{
+            //    //Room currentRoom = pair.Key;
+            //    Gizmos.color = Color.red;
+            //    Gizmos.DrawLine(tri.pointA, tri.pointB);
+            //    Gizmos.DrawLine(tri.pointA, tri.pointC);
+            //    Gizmos.DrawLine(tri.pointC, tri.pointB);
+            //}
 
             //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
             //{
