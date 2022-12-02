@@ -37,7 +37,16 @@ public class Room : IEquatable<Room>
 
     //We could go in depth here and check if each cell is equivalent, but in reality, rooms should theoretically never have the same center so we shouldn't need to worry
     public static bool operator ==(Room lhs, Room rhs)
-        => (lhs.center == rhs.center) && (lhs.cells.Count == rhs.cells.Count);
+    {
+        //Check if either is null before accessing variables
+        if(lhs is Room && rhs is Room)
+        {
+            return (lhs.center == rhs.center) && (lhs.cells.Count == rhs.cells.Count);
+        }
+
+        //If at least one parameter was null, return true if both are
+        return (lhs is Room && rhs is Room);
+    } 
 
     public static bool operator !=(Room lhs, Room rhs)
         => !(lhs == rhs);
@@ -322,10 +331,13 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
+        //Match rooms to edges to get room map
         foreach(KeyValuePair<Edge, int> pair in totalEdges)
         {
-            if(pair.Value > 0)
+            if (pair.Value > 0)
             {
+                
+
                 Room room1 = null;
                 Room room2 = null;
 
@@ -356,6 +368,12 @@ public class DungeonGenerator : MonoBehaviour
                 }
             }
         }
+
+        ////Delete edges that pass through other rooms
+        //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
+        //{
+            
+        //}
     }
 
     void DerriveMinimumSpanningTree()
