@@ -58,6 +58,11 @@ public class Room : IEquatable<Room>
     //    => !(lhs == rhs);
 }
 
+
+
+
+
+
 public class DungeonGenerator : MonoBehaviour
 {
     [SerializeField] GameObject room;
@@ -95,7 +100,12 @@ public class DungeonGenerator : MonoBehaviour
 
     Tetrahedron superTetrahedron;
 
-    Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
+    //Will store adjacency list of edges in tetrahedralization excluding duplicates
+    Dictionary<Vector3, List<Edge>> totalEdges = new Dictionary<Vector3, List<Edge>>();
+
+    MinimumSpanningTree minAlgorithm = new();
+
+    //Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
     private void Start()
     {
@@ -118,7 +128,8 @@ public class DungeonGenerator : MonoBehaviour
         //Empty all arrays and delete all current rooms
         tetrahedrons.Clear();
         rooms.Clear();
-        roomMap.Clear();
+        totalEdges.Clear();
+        //roomMap.Clear();
         foreach(Transform child in roomParent.transform)
         {
             Destroy(child.gameObject);
@@ -129,9 +140,27 @@ public class DungeonGenerator : MonoBehaviour
     void Generate()
     {
         GenerateRandomRooms();
+
         CreateConnectedMap();
-        DerriveMinimumSpanningTree();
-        AddRandomHallways();
+
+        Vector3 start = Vector3.zero;
+        IEnumerator enumerator = totalEdges.Keys.GetEnumerator(); //Get enumerator of keys
+        bool success = enumerator.MoveNext();   //Move to first key
+        if(success) //Check that key exists
+        {
+            start = (Vector3)enumerator.Current;    //Get key
+        }
+        else
+        {
+            throw new Exception("No keys in edge map.  Can not execute MST");
+        }
+        
+        List<Edge> minSpan = minAlgorithm.DerriveMST(out List<Edge> excluded, start, totalEdges);
+
+        AddRandomHallways(ref minSpan, excluded);
+
+        ConvertEdgesBackToRooms(minSpan);
+
         CarveHallways();
     }
 
@@ -139,11 +168,7 @@ public class DungeonGenerator : MonoBehaviour
     {
         for (int i = 0; i < numRandomRooms; i++)
         {
-            Vector3 randPos = new Vector3(
-                CellDimensions.x * UnityEngine.Random.Range(0, GridDimensions.x),
-                CellDimensions.y * UnityEngine.Random.Range(0, GridDimensions.y),
-                CellDimensions.z * UnityEngine.Random.Range(0, GridDimensions.z)
-            );
+            Vector3 randPos = Vector3.zero;
 
             //Number of room segments in each direction
             Vector3 randSize = new Vector3(
@@ -152,17 +177,39 @@ public class DungeonGenerator : MonoBehaviour
                 UnityEngine.Random.Range(minSize.z, maxSize.z)
             );
 
-            //Ensure at least one room will be on a different floor, ensures that tetrahedralization will not be degenerate
-            if(i == 0)
-            {
-                randPos.y = 0;
-                randSize.y = 1;
-            }
-            else if(i == 1)
-            {
-                randPos.y = GridDimensions.y;
-                randSize.y = 1;
-            }
+            //I have this commented out because there are too many variables that go into preventing degenerate tetrahedrals.
+            //If the 4 given points lie on the same plane (the plane can have any orientation) then tetrahedralization on those points fails
+            //It may be simpler to just remove rooms that have a degenerate tetrahedral
+            //Maybe we can go back and add 2d triangulation oriented to the plane?
+            //The system below won't work because rooms can still be placed in between the 4 extremal rooms which, with only 5 rooms for example,
+            //tetrahedralization would fail between the first room and the room on the other side of the fifth room
+
+            //Ensure the first four rooms are in the corners, ensures that tetrahedralization will not be degenerate
+            //if(i == 0)  //stick first room at first cell
+            //{
+            //    //randSize.y = 1;
+            //}
+            //else if(i == 1)
+            //{
+            //    randPos = new Vector3(CellDimensions.x * (GridDimensions.x - randSize.x), 0, 0);
+            //    //randSize.y = 1;
+            //}
+            //else if(i == 2)
+            //{
+            //    randPos = new Vector3(0, CellDimensions.y * (GridDimensions.y - randSize.y), 0);
+            //}
+            //else if (i == 3)
+            //{
+            //    randPos = new Vector3(0, 0, CellDimensions.z * (GridDimensions.z - randSize.z));
+            //}
+            //else
+            //{
+                randPos = new Vector3(
+                    CellDimensions.x * UnityEngine.Random.Range(0, GridDimensions.x),
+                    CellDimensions.y * UnityEngine.Random.Range(0, GridDimensions.y),
+                    CellDimensions.z * UnityEngine.Random.Range(0, GridDimensions.z)
+                );
+            //}
 
             Vector3 gridCenter = grid.GetCenter(randPos);
             Vector3 gridIndices = grid.GetGridIndices(randPos);
@@ -207,42 +254,6 @@ public class DungeonGenerator : MonoBehaviour
                 rooms.Add(newRoom);
             }
         }
-
-        //Room room1 = new Room();
-        //room1.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(30, 0, 25))));
-        //room1.center = new Vector3(30, 0, 25);
-        //Transform trans1 = Instantiate(room, room1.center, Quaternion.identity, null).transform;
-        //trans1.localScale = CellDimensions;
-
-        //Room room2 = new Room();
-        //room2.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(7, 0, 32))));
-        //room2.center = new Vector3(7, 0, 32);
-        //Transform trans2 = Instantiate(room, room2.center, Quaternion.identity, null).transform;
-        //trans2.localScale = CellDimensions;
-
-        //Room room3 = new Room();
-        //room3.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(7, 0, 35))));
-        //room3.center = new Vector3(7, 0, 35);
-        //Transform trans3 = Instantiate(room, room3.center, Quaternion.identity, null).transform;
-        //trans3.localScale = CellDimensions;
-
-        //Room room4 = new Room();
-        //room4.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(23, 0, 30))));
-        //room4.center = new Vector3(23, 0, 30);
-        //Transform trans4 = Instantiate(room, room4.center, Quaternion.identity, null).transform;
-        //trans4.localScale = CellDimensions;
-
-        //Room room5 = new Room();
-        //room5.cells.Add(grid.GetCell(grid.GetGridIndices(new Vector3(9, 0, 18))));
-        //room5.center = new Vector3(9, 0, 18);
-        //Transform trans5 = Instantiate(room, room5.center, Quaternion.identity, null).transform;
-        //trans5.localScale = CellDimensions;
-
-        //rooms.Add(room1);
-        //rooms.Add(room2);
-        //rooms.Add(room3);
-        //rooms.Add(room4);
-        //rooms.Add(room5);
     }
 
     void CreateConnectedMap()
@@ -267,11 +278,6 @@ public class DungeonGenerator : MonoBehaviour
         //Perform tetrahedralization
         tetrahedrons = DelaunayTriangulation.Tetrahedralize(superTetrahedron, pointList);
 
-        Debug.Log(tetrahedrons.Count);
-
-        //Will store total edges in tetrahedralization excluding duplicates
-        Dictionary<Edge, int> totalEdges = new Dictionary<Edge, int>();
-
         //Count up each edge in tetrahedralization once to remove duplicates
         foreach(Tetrahedron tet in tetrahedrons)
         {
@@ -279,45 +285,46 @@ public class DungeonGenerator : MonoBehaviour
 
             foreach(Edge e in edges)
             {
-                if(!totalEdges.TryGetValue(e, out int i))
-                {
-                    totalEdges.Add(e, 1);
-                }
-            }
-        }
+                List<Edge> list;
+                //if (!totalEdges.TryGetValue(e.pointA, out list) && !totalEdges.TryGetValue(e.pointB, out list))
+                //{
+                //    List<Edge> newList = new();
+                //    newList.Add(e);
+                //    totalEdges.Add(e.pointA, newList);
+                //}
+                bool added = false, contains = false;
 
-        //Match rooms to edges to get room map
-        foreach(KeyValuePair<Edge, int> pair in totalEdges)
-        {
-            if (pair.Value > 0)
-            {
-                Room room1 = null;
-                Room room2 = null;
-
-                foreach(Room room in rooms)
+                if(totalEdges.TryGetValue(e.pointA, out list))
                 {
-                    if(room.center == pair.Key.pointA)
+                    if (!list.Contains(e))
                     {
-                        room1 = room;
-                    }
-                    else if(room.center == pair.Key.pointB)
-                    {
-                        room2 = room;
-                    }
-                }
-
-                if(room1 != null && room2 != null)
-                {
-                    if(roomMap.TryGetValue(room1, out List<Room> roomList))
-                    {
-                        roomList.Add(room2);
+                        list.Add(e);
+                        added = true;
                     }
                     else
                     {
-                        List<Room> newRooms = new List<Room>();
-                        newRooms.Add(room2);
-                        roomMap.Add(room1, newRooms);
+                        contains = true;
                     }
+                }
+
+                if(!added && !contains && totalEdges.TryGetValue(e.pointB, out list))
+                {
+                    if (!list.Contains(e))
+                    {
+                        list.Add(e);
+                        added = true;
+                    }
+                    else
+                    {
+                        contains = true;
+                    }
+                }
+
+                if(!added && !contains)
+                {
+                    List<Edge> newList = new();
+                    newList.Add(e);
+                    totalEdges.Add(e.pointA, newList);
                 }
             }
         }
@@ -336,14 +343,48 @@ public class DungeonGenerator : MonoBehaviour
         //}
     }
 
-    void DerriveMinimumSpanningTree()
+    void AddRandomHallways(ref List<Edge> minSpanTree, List<Edge> excluded)
     {
-
+        //Add random number of edges from excluded to minSpanTree
     }
 
-    void AddRandomHallways()
+    void ConvertEdgesBackToRooms(List<Edge> finalMap)
     {
+        //Match rooms to edges to get room map
+        //foreach (KeyValuePair<Edge, int> pair in totalEdges)
+        //{
+        //    if (pair.Value > 0)
+        //    {
+        //        Room room1 = null;
+        //        Room room2 = null;
 
+        //        foreach (Room room in rooms)
+        //        {
+        //            if (room.center == pair.Key.pointA)
+        //            {
+        //                room1 = room;
+        //            }
+        //            else if (room.center == pair.Key.pointB)
+        //            {
+        //                room2 = room;
+        //            }
+        //        }
+
+        //        if (room1 != null && room2 != null)
+        //        {
+        //            if (roomMap.TryGetValue(room1, out List<Room> roomList))
+        //            {
+        //                roomList.Add(room2);
+        //            }
+        //            else
+        //            {
+        //                List<Room> newRooms = new List<Room>();
+        //                newRooms.Add(room2);
+        //                roomMap.Add(room1, newRooms);
+        //            }
+        //        }
+        //    }
+        //}
     }
 
     void CarveHallways()
@@ -374,21 +415,30 @@ public class DungeonGenerator : MonoBehaviour
             //triangles[0].DrawGizmos();
             //Gizmos.DrawSphere(sphere.center, sphere.radius);
 
-            foreach (Tetrahedron tet in tetrahedrons)
-            {
-                //Room currentRoom = pair.Key;
-                Gizmos.color = Color.red;
-                tet.DrawGizmos();
-            }
+            //foreach (Tetrahedron tet in tetrahedrons)
+            //{
+            //    //Room currentRoom = pair.Key;
+            //    Gizmos.color = Color.red;
+            //    tet.DrawGizmos();
+            //}
 
-            foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
+            foreach (KeyValuePair<Vector3, List<Edge>> pair in totalEdges)
             {
-                Gizmos.color = Color.green;
-                foreach (Room room in pair.Value)
+                Gizmos.color = Color.red;
+                foreach (Edge edge in pair.Value)
                 {
-                    Gizmos.DrawLine(pair.Key.center, room.center);
+                    Gizmos.DrawLine(edge.pointA, edge.pointB);
                 }
             }
+
+            //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
+            //{
+            //    Gizmos.color = Color.red;
+            //    foreach (Room room in pair.Value)
+            //    {
+            //        Gizmos.DrawLine(pair.Key.center, room.center);
+            //    }
+            //}
 
             //Gizmos.DrawSphere(superTetrahedron.circumSphere.center, superTetrahedron.circumSphere.radius);
             //superTetrahedron.DrawGizmos();

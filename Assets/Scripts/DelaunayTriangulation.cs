@@ -12,7 +12,7 @@ public struct Circumsphere
     public float radius;
 }
 
-public class Edge : IEquatable<Edge>
+public class Edge : IEquatable<Edge>, IComparable<Edge>
 {
     public Vector3 pointA;
     public Vector3 pointB;
@@ -23,13 +23,30 @@ public class Edge : IEquatable<Edge>
         pointB = newPointB;
     }
 
-    public static bool operator ==(Edge lhs, Edge rhs)
-        => ((lhs.pointA == rhs.pointA) && (lhs.pointB == rhs.pointB)) ||
-           ((lhs.pointA == rhs.pointB) && (lhs.pointB == rhs.pointA));
+    public float SqrLength()
+    {
+        return (pointA - pointB).sqrMagnitude;
+    }
+
+    public float Length()
+    {
+        return Vector3.Distance(pointA, pointB);
+    }
+
+    public static bool operator ==(Edge lhs, Edge rhs) 
+    {
+        //Null check before accessing Edge member variables
+        if(lhs is Edge && rhs is Edge)
+        {
+            return ((lhs.pointA == rhs.pointA) && (lhs.pointB == rhs.pointB)) ||
+               ((lhs.pointA == rhs.pointB) && (lhs.pointB == rhs.pointA));
+        }
+
+        return lhs is Edge && rhs is Edge;
+    } 
 
     public static bool operator !=(Edge lhs, Edge rhs)
-        => (lhs.pointA != rhs.pointA) || (lhs.pointB != rhs.pointB) &&
-           ((lhs.pointA != rhs.pointB) || (lhs.pointB != rhs.pointA));
+        => !(lhs == rhs);
     public bool Equals(Edge e)
     {
         return this == e;
@@ -40,13 +57,24 @@ public class Edge : IEquatable<Edge>
         return pointA.GetHashCode() ^ pointB.GetHashCode();
     }
 
-    //bool IEqualityComparer<Edge>.Equals(Edge a, Edge b)
-    //{
-    //    return ((a.pointA == b.pointA) && (a.pointB == b.pointB)) ||
-    //       ((a.pointA == b.pointB) && (a.pointB == b.pointA));
-    //}
+    bool IEquatable<Edge>.Equals(Edge b)
+    {
+        return this == b;
+    }
 
-    //int IEqualityComparer<Edge>.GetHashCode(Edge obj)
+    public int CompareTo(Edge other)
+    {
+        if(other == null)
+        {
+            return 1;
+        }
+        else 
+        {
+            return (SqrLength() > other.SqrLength() ? 1 : 0);
+        }
+    }
+
+    //int IEquatable<Edge>.GetHashCode(Edge obj)
     //{
     //    return obj.pointA.GetHashCode() ^ obj.pointB.GetHashCode();
     //}
