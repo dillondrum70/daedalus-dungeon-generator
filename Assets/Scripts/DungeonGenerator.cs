@@ -103,14 +103,17 @@ public class DungeonGenerator : MonoBehaviour
     //Will store adjacency list of edges in tetrahedralization excluding duplicates
     Dictionary<Vector3, List<Edge>> totalEdges = new Dictionary<Vector3, List<Edge>>();
 
-    MinimumSpanningTree minAlgorithm = new();
+    MinimumSpanningTree minAlgorithm;   //We make this a component so we can use DrawGizmos within the class itself
 
     //Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
     private void Start()
     {
         grid = GetComponent<Grid>();
+        minAlgorithm = GetComponent<MinimumSpanningTree>();
+
         grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
+
         Generate();
     }
 
@@ -155,11 +158,11 @@ public class DungeonGenerator : MonoBehaviour
             throw new Exception("No keys in edge map.  Can not execute MST");
         }
         
-        List<Edge> minSpan = minAlgorithm.DerriveMST(out List<Edge> excluded, start, totalEdges);
+        List<Edge> minSpanTree = minAlgorithm.DerriveMST(out List<Edge> excluded, start, totalEdges);
 
-        AddRandomHallways(ref minSpan, excluded);
+        AddRandomHallways(ref minSpanTree, excluded);
 
-        ConvertEdgesBackToRooms(minSpan);
+        ConvertEdgesBackToRooms(minSpanTree);
 
         CarveHallways();
     }
@@ -278,7 +281,8 @@ public class DungeonGenerator : MonoBehaviour
         //Perform tetrahedralization
         tetrahedrons = DelaunayTriangulation.Tetrahedralize(superTetrahedron, pointList);
 
-        //Count up each edge in tetrahedralization once to remove duplicates
+        //Count up each edge in tetrahedralization once and add a second with the points reversed so we have an adjacency list of an
+        //undirected graph
         foreach(Tetrahedron tet in tetrahedrons)
         {
             Edge[] edges = tet.GetEdges();
@@ -286,48 +290,82 @@ public class DungeonGenerator : MonoBehaviour
             foreach(Edge e in edges)
             {
                 List<Edge> list;
-                //if (!totalEdges.TryGetValue(e.pointA, out list) && !totalEdges.TryGetValue(e.pointB, out list))
-                //{
-                //    List<Edge> newList = new();
-                //    newList.Add(e);
-                //    totalEdges.Add(e.pointA, newList);
-                //}
                 bool added = false, contains = false;
 
+                //Add the edge to the dictionary if it isn't in there already
                 if(totalEdges.TryGetValue(e.pointA, out list))
                 {
                     if (!list.Contains(e))
                     {
                         list.Add(e);
-                        added = true;
-                    }
-                    else
-                    {
-                        contains = true;
                     }
                 }
-
-                if(!added && !contains && totalEdges.TryGetValue(e.pointB, out list))
-                {
-                    if (!list.Contains(e))
-                    {
-                        list.Add(e);
-                        added = true;
-                    }
-                    else
-                    {
-                        contains = true;
-                    }
-                }
-
-                if(!added && !contains)
+                else
                 {
                     List<Edge> newList = new();
                     newList.Add(e);
                     totalEdges.Add(e.pointA, newList);
                 }
+
+                //Create a duplicate of the edge with the points reversed so we have an undirected graph
+                if (totalEdges.TryGetValue(e.pointB, out list))
+                {
+                    if (!list.Contains(e))
+                    {
+                        list.Add(new Edge(e.pointB, e.pointA));
+                    }
+                }
+                else
+                {
+                    List<Edge> newList = new();
+                    newList.Add(new Edge(e.pointB, e.pointA));
+                    totalEdges.Add(e.pointB, newList);
+                }
+
+                //if(!added && !contains && totalEdges.TryGetValue(e.pointB, out list))
+                //{
+                //    if (!list.Contains(e))
+                //    {
+                //        list.Add();
+
+                //        if (!totalEdges.TryGetValue(e.pointA, out list))
+                //        {
+                //            list = new List<Edge>();
+                //            list.Add(new Edge(e.pointB, e.pointA));
+                //            totalEdges.Add(e.pointB, list);
+                //        }
+                //        else
+                //        {
+                //            list.Add(new Edge(e.pointB, e.pointA));
+                //        }
+
+                //        added = true;
+                //    }
+                //    else
+                //    {
+                //        contains = true;
+                //    }
+                //}
+
+                //if(!added && !contains)
+                //{
+                //    List<Edge> newList = new();
+                //    newList.Add(e);
+                //    totalEdges.Add(e.pointA, newList);
+                //}
             }
         }
+
+        //int count = 0;
+        //foreach (KeyValuePair<Vector3, List<Edge>> pair in totalEdges)
+        //{
+        //    foreach (Edge e in pair.Value)
+        //    {
+        //        Debug.DrawLine(e.pointA, e.pointB, Color.red, 999f);
+        //        count++;
+        //    }
+        //}
+        //Debug.Log(count);
 
         ////Delete edges that pass through other rooms, this happens because tetrahedralization deals with points but we deal with rooms that have sizes
         //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
@@ -337,7 +375,7 @@ public class DungeonGenerator : MonoBehaviour
         //        Ray ray = new Ray(room.center, pair.Key.center - room.center);
         //        if(Physics.Raycast(ray, out RaycastHit data))
         //        {
-                        //Not going to worry about how to get it to understand which room objects belong to which rooms yet for raycast
+        //Not going to worry about how to get it to understand which room objects belong to which rooms yet for raycast
         //        }
         //    }
         //}
@@ -422,14 +460,14 @@ public class DungeonGenerator : MonoBehaviour
             //    tet.DrawGizmos();
             //}
 
-            foreach (KeyValuePair<Vector3, List<Edge>> pair in totalEdges)
-            {
-                Gizmos.color = Color.red;
-                foreach (Edge edge in pair.Value)
-                {
-                    Gizmos.DrawLine(edge.pointA, edge.pointB);
-                }
-            }
+            //foreach (KeyValuePair<Vector3, List<Edge>> pair in totalEdges)
+            //{
+            //    Gizmos.color = Color.red;
+            //    foreach (Edge edge in pair.Value)
+            //    {
+            //        Gizmos.DrawLine(edge.pointA, edge.pointB);
+            //    }
+            //}
 
             //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
             //{

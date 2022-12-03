@@ -1,13 +1,15 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MinimumSpanningTree
+public class MinimumSpanningTree : MonoBehaviour
 {
-    HashSet<Vector3> visited = new();
-    List<Edge> minSpanTree = new();
-    PriorityQueue<Edge> frontier = new();
-    Dictionary<Vector3, List<Edge>> adjacencyList = new();
+    HashSet<Vector3> visited = new();       //Which nodes have already been visited
+    List<Edge> solution = new();            //Stores edges of minimum spanning tree
+    List<Edge> notSolution = new();         //Edges not in solution
+    PriorityQueue<Edge> frontier = new();   //Edges left to check, sorted shortest to longest top to bottom
+    Dictionary<Vector3, List<Edge>> adjacencyList = new();  //Edges of entire connected graph (undirected)
 
     public List<Edge> DerriveMST(out List<Edge> excluded, Vector3 start, Dictionary<Vector3, List<Edge>> map)
     {
@@ -16,19 +18,44 @@ public class MinimumSpanningTree
         excluded = new();   //All edges that aren't in minSpanTree
 
         Visit(start);
-        
-        return minSpanTree;
+
+        while(!frontier.Empty())
+        {
+            //Get next node and remove it from the priority queue
+            Edge current = frontier.Top();
+            frontier.Pop();
+
+            //Check if already visited point
+            if(visited.Contains(current.pointB))
+            {
+                excluded.Add(current);
+                continue;
+            }
+
+            //Save this edge
+            solution.Add(current);
+
+            //Log that that point has been visited
+            //Our graph is undirected so we visit both points since we might be coming from pointB to pointA
+            Visit(current.pointB);
+            //Visit(current.pointA);
+        }
+        notSolution = excluded;
+        return solution;
     }
 
     private void Visit(Vector3 v)
     {
         visited.Add(v);
 
-        foreach(Edge e in adjacencyList[v])
+        if(adjacencyList.TryGetValue(v, out List<Edge> nextList))
         {
-            if(!visited.Contains(e.pointB))
+            foreach (Edge e in nextList)
             {
-                frontier.Push(e);
+                if (!visited.Contains(e.pointB))
+                {
+                    frontier.Push(e);
+                }
             }
         }
     }
@@ -36,9 +63,23 @@ public class MinimumSpanningTree
     private void Clear()
     {
         visited.Clear();
-        minSpanTree.Clear();
+        solution.Clear();
         frontier.Clear();
         adjacencyList.Clear();
+    }
+
+    private void OnDrawGizmos()
+    {
+        foreach (Edge e in notSolution)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(e.pointA, e.pointB);
+        }
+        foreach (Edge e in solution)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(e.pointA, e.pointB);
+        }
     }
 }
 
@@ -89,5 +130,10 @@ public class PriorityQueue<T>
     public void Clear()
     {
         queue.Clear();
+    }
+
+    public bool Empty()
+    {
+        return queue.Count == 0;
     }
 }

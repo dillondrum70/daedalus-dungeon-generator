@@ -17,10 +17,13 @@ public class Edge : IEquatable<Edge>, IComparable<Edge>
     public Vector3 pointA;
     public Vector3 pointB;
 
+    float magnitude = 0;
+
     public Edge(Vector3 newPointA, Vector3 newPointB)
     {
         pointA = newPointA;
         pointB = newPointB;
+        magnitude = Vector3.Distance(pointA, pointB);
     }
 
     public float SqrLength()
@@ -70,7 +73,16 @@ public class Edge : IEquatable<Edge>, IComparable<Edge>
         }
         else 
         {
-            return (SqrLength() > other.SqrLength() ? 1 : 0);
+            ////////////// WARNING //////////////////
+            //This is incorrect if either pointA or
+            //pointB is changed after creation.
+            //That should never happen in our system,
+            //but if it does, change these to use
+            //SqrLength()
+            /////////////////////////////////////////
+            float sqr1 = magnitude;
+            float sqr2 = other.magnitude;
+            return ( sqr1 == sqr2 ? 0 : sqr1 < sqr2 ? -1 : 1);
         }
     }
 

@@ -343,6 +343,7 @@ GameObject:
   - component: {fileID: 1459068378}
   - component: {fileID: 1459068377}
   - component: {fileID: 1459068379}
+  - component: {fileID: 1459068380}
   m_Layer: 0
   m_Name: DungeonGenerator
   m_TagString: Untagged
@@ -402,3 +403,15 @@ MonoBehaviour:
   cellCountY: 10
   cellCountZ: 20
   rooms: []
+--- !u!114 &1459068380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1459068376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474532ddbbc3f9445a1f0ce4e3809c56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
