@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 1788134428881012764}
   - component: {fileID: 7729146256581621563}
   m_Layer: 0
-  m_Name: Hall
+  m_Name: StairSpacePlaceholder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -62,7 +62,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 7a7570a7f77907f4eb40d6f94a587b9a, type: 2}
+  - {fileID: 2100000, guid: d9ee66b562ef1274aa9e884b72b85834, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

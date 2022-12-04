@@ -75,6 +75,7 @@ public class AStar : MonoBehaviour
         //Add start node to open list
         open.Push(new AStarNode(startIndex, 0, FindH(startIndex, goalIndex)));  //Parent is null since it is start node
 
+
         while(!open.Empty())
         {
             AStarNode current = open.Top();
@@ -132,7 +133,7 @@ public class AStar : MonoBehaviour
         return (Mathf.Abs(currentIndex.x - goalIndex.x) + Mathf.Abs(currentIndex.y - goalIndex.y) + Mathf.Abs(currentIndex.z - goalIndex.z)) * 1.001f;
     }
 
-    static Stack<AStarNode> CheckCell(AStarNode current, Vector3Int nextIndex, Vector3Int goalIndex, Grid grid, bool canOverlap)
+    static Stack<AStarNode> CheckCell(AStarNode current, Vector3Int nextIndex, Vector3Int goalIndex, Grid grid, bool hallsCanOverlap)
     {
         //If the cell is within the bounds of the grid
         if (grid.IsValidCell(nextIndex))
@@ -140,6 +141,9 @@ public class AStar : MonoBehaviour
             AStarNode nextNode = new AStarNode(nextIndex, current.g + 1, FindH(nextIndex, goalIndex), current);
 
             //If nextIndex is the goal index AND if the last hallway is level with the goal room
+            //If we want to allow staircases to lead down into rooms with the staircase physically inside the room instead of
+            //right outside the room entrance, we can remove "current.indices.y == goalIndex.y" or make it <= for just staircases
+            //leading up from below
             if (nextIndex == goalIndex && current.indices.y == goalIndex.y)
             {
                 //End
@@ -148,7 +152,7 @@ public class AStar : MonoBehaviour
 
             //Push the cell to the open list with its corresponding values for g and h, set current node as its parent
             //We can have hallways overlap, but we don't want staircases to overlap hallways or that could get messy, gives us more 
-            if (canOverlap || grid.IsCellEmpty(nextIndex))
+            if ((hallsCanOverlap && grid.GetCell(nextIndex).cellType == CellTypes.HALLWAY) || grid.IsCellEmpty(nextIndex))
             {
                 //Skip this cell if open or closed has a node with a lower f value, that means this one is obsolete
                 //Make sure to null check the results before continuing in case a node does not exist with those indices
@@ -163,7 +167,18 @@ public class AStar : MonoBehaviour
                     //Stairwell case
                     if(current.indices.y != nextIndex.y)
                     {
-                        Vector3 levelIndex = new Vector3(nextIndex.x, current.indices.y, nextIndex.z);
+                        //We can assum this index is inside the grid since the current node and the next one have already been
+                        //verified by this point
+                        Vector3Int levelIndex = new Vector3Int(nextIndex.x, current.indices.y, nextIndex.z);
+
+                        //Grid index MUST be empty since the stairs will block anything or, if the stairs are going down, the space above
+                        //the stairs would cause the floor of a hallway or rooom to be missing
+                        //We might not care if its a room?  We could put railings on the sides of the empty space and have a little balcony
+                        //if the stairs are going down
+                        if(grid.IsCellEmpty(levelIndex))
+                        {
+                            open.Push(nextNode);
+                        }
                     }
                     open.Push(nextNode);
                 }

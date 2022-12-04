@@ -98,7 +98,9 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] Vector3 minSize = new Vector3(1, 1, 1);
 
     [Header("Hallway Parameters")]
-    [SerializeField] GameObject hall;
+    [SerializeField] GameObject hallPrefab;
+    [SerializeField] GameObject stairsPrefab;
+    [SerializeField] GameObject stairSpacePrefab;
 
     [SerializeField] float extraHallwaysFactor = .5f;   //Adds (<extra> * leftover room count) number of rooms after minimum spanning tree determined
 
@@ -421,6 +423,7 @@ public class DungeonGenerator : MonoBehaviour
         {
             foreach(Room room in pair.Value)
             {
+                //find closest room cell in the goal room and make that our A* target
                 Vector3 goal = room.cells[0].center;
                 for(int i = 1; i < room.cells.Count; i++)
                 {
@@ -430,19 +433,60 @@ public class DungeonGenerator : MonoBehaviour
                     }
                 }
 
-                Stack<AStarNode> path = AStar.Run(grid.GetGridIndices(pair.Key.center), grid.GetGridIndices(goal), grid);
+                Vector3Int startIndices = grid.GetGridIndices(pair.Key.center);
+                Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(goal), grid);
 
                 //path might return null if A* failed
                 if(path != null)
                 {
+                    //Store the last Y value so we know when we've added a stairwell
+                    int lastY = startIndices.y;
                     foreach (AStarNode node in path)
                     {
-                        grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
-
+                        //Get center position of unit
                         Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
-                        Transform trans = Instantiate(hall, pos, Quaternion.identity, roomParent.transform).transform;
 
-                        trans.localScale = CellDimensions;
+                        if (node.indices.y < lastY) //Stairwell down
+                        {
+                            //Stair cell
+                            grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
+                            Transform trans = Instantiate(stairsPrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stairwell
+                            trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
+
+                            //Stairspace cell
+                            pos += new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
+                            //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
+                            grid.GetCell(new Vector3(node.indices.x, node.indices.y + 1, node.indices.z)).cellType = CellTypes.STAIRSPACE;
+                            trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stairspace
+                            trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
+                        }
+                        else if(node.indices.y > lastY) //Stairwell up
+                        {
+                            //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
+                            grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stair space
+                            Transform trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stair space
+                            trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
+
+                            //Stair cell
+                            pos -= new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
+                            grid.GetCell(new Vector3(node.indices.x, node.indices.y - 1, node.indices.z)).cellType = CellTypes.STAIRS;  //Mark as stairs
+                            trans = Instantiate(stairsPrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stair
+                            trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
+                        }
+                        else //Hallway
+                        {
+                            //Mark grid cell as hallway
+                            grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
+
+                            //Spawn hallway
+                            Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, roomParent.transform).transform;
+
+                            //Scale the unit to fit the grid cell
+                            trans.localScale = CellDimensions;
+                        }
+
+                        //Update last y with this node's y value
+                        lastY = node.indices.y;
                     }
                 }
                 else

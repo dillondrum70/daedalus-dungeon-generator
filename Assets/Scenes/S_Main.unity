@@ -401,6 +401,8 @@ MonoBehaviour:
   numRandomRooms: 10
   maxSize: {x: 3, y: 1, z: 3}
   minSize: {x: 1, y: 1, z: 1}
-  hall: {fileID: 1466790304378640822, guid: 021d8602b31a7b242835de6b2ac14aa9, type: 3}
+  hallPrefab: {fileID: 1466790304378640822, guid: 021d8602b31a7b242835de6b2ac14aa9, type: 3}
+  stairsPrefab: {fileID: 1466790304378640822, guid: 1884615616295f7469b33e0594205419, type: 3}
+  stairSpacePrefab: {fileID: 1466790304378640822, guid: c841f6e0556b9fa41be9eb3d000ca533, type: 3}
   extraHallwaysFactor: 0.3
   test: {x: 5, y: 5, z: 5}
