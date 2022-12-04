@@ -392,14 +392,11 @@ public class DelaunayTriangulation
 
         foreach (Vector3 point in pointList)
         {
-            //Debug.Log("New Room");
+            //Triangles in tetrahedrons
             List<Triangle> triangles = new List<Triangle>();
 
-            //Number of occurrences of each triangle (triangles that overlap between tetrahedrons)
-            //Dictionary<Triangle, int> badTriangles = new Dictionary<Triangle, int>();
-
             //Find which tetrahedrons whose circumspheres contain the center of the room
-            //Log how many times each triangle occurs for checking which triangles to remove later on
+            //Store the triangles of the tetrahedrom
             foreach (Tetrahedron tet in tetrahedrons)
             {
                 if (tet.CircumsphereContainsPoint(point))
@@ -414,7 +411,7 @@ public class DelaunayTriangulation
                 }
             }
 
-            //If same triangle is included in the circumsphere of multiple tetrahedrons, it should be removed
+            //If same triangle is included in the circumsphere of multiple tetrahedrons, it should be removed so we mark it as such
             for (int i = 0; i < triangles.Count; i++)
             {
                 for (int j = i + 1; j < triangles.Count; j++)
@@ -428,8 +425,8 @@ public class DelaunayTriangulation
             }
 
             //Remove invalid tetrahedrons and triangles
-            tetrahedrons.RemoveAll((Tetrahedron t) => t.isInvalid);
-            triangles.RemoveAll((Triangle t) => t.isInvalid);
+            tetrahedrons.RemoveAll((Tetrahedron tet) => tet.isInvalid);
+            triangles.RemoveAll((Triangle tri) => tri.isInvalid);
 
             //Create a new tetrahedron using each valid triangle and the room center
             foreach (Triangle tri in triangles)

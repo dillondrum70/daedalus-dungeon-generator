@@ -15,6 +15,8 @@ public class AStarNode : IComparable<AStarNode>
 
     public Vector3Int indices = Vector3Int.zero; //indices in grid of this node
 
+    public CellTypes cellType = CellTypes.HALLWAY;
+
     public AStarNode(Vector3Int valIndices, float valG, float valH, AStarNode valParent = null)
     {
         indices = valIndices;
@@ -137,7 +139,7 @@ public class AStar : MonoBehaviour
         {
             AStarNode nextNode = new AStarNode(nextIndex, current.g + 1, FindH(nextIndex, goalIndex), current);
 
-            //If nextIndex is the goal index
+            //If nextIndex is the goal index AND if the last hallway is level with the goal room
             if (nextIndex == goalIndex && current.indices.y == goalIndex.y)
             {
                 //End
@@ -157,6 +159,12 @@ public class AStar : MonoBehaviour
                     //Transform trans = Instantiate(GameObject.CreatePrimitive(PrimitiveType.Cube), new Vector3((nextIndex.x * grid.CellDimensions.x), (nextIndex.y * grid.CellDimensions.y), (nextIndex.z * grid.CellDimensions.z)), Quaternion.identity, GameObject.Find("Rooms").transform).transform;
 
                     //trans.localScale = grid.CellDimensions;
+
+                    //Stairwell case
+                    if(current.indices.y != nextIndex.y)
+                    {
+                        Vector3 levelIndex = new Vector3(nextIndex.x, current.indices.y, nextIndex.z);
+                    }
                     open.Push(nextNode);
                 }
             }

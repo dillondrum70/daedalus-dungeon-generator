@@ -6,7 +6,8 @@ public enum CellTypes
     NONE = 0,
     ROOM,
     HALLWAY,
-    STAIRS
+    STAIRS,     //The actual staircase cell
+    STAIRSPACE  //The empty cell above a staircase that is necessary to be able to walk up a staircase
 }
 
 public struct Cell
