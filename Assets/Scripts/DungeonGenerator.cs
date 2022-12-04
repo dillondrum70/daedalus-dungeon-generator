@@ -112,7 +112,7 @@ public class DungeonGenerator : MonoBehaviour
 
     MinimumSpanningTree minAlgorithm = new();
 
-    //Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
+    Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
     private void Start()
     {
@@ -138,7 +138,7 @@ public class DungeonGenerator : MonoBehaviour
         tetrahedrons.Clear();
         rooms.Clear();
         totalEdges.Clear();
-        //roomMap.Clear();
+        roomMap.Clear();
         foreach(Transform child in roomParent.transform)
         {
             Destroy(child.gameObject);
@@ -168,14 +168,14 @@ public class DungeonGenerator : MonoBehaviour
 
         AddRandomHallways(ref minSpanTree, ref excluded);
 
-        foreach (Edge e in minSpanTree)
-        {
-            Debug.DrawLine(e.pointA, e.pointB, Color.green, 5f);
-        }
-        foreach (Edge e in excluded)
-        {
-            Debug.DrawLine(e.pointA, e.pointB, Color.red, 5f);
-        }
+        //foreach (Edge e in minSpanTree)
+        //{
+        //    Debug.DrawLine(e.pointA, e.pointB, Color.green, 20f);
+        //}
+        //foreach (Edge e in excluded)
+        //{
+        //    Debug.DrawLine(e.pointA, e.pointB, Color.red, 20f);
+        //}
 
         ConvertEdgesBackToRooms(minSpanTree);
 
@@ -336,64 +336,8 @@ public class DungeonGenerator : MonoBehaviour
                     newList.Add(new Edge(e.pointB, e.pointA));
                     totalEdges.Add(e.pointB, newList);
                 }
-
-                //if(!added && !contains && totalEdges.TryGetValue(e.pointB, out list))
-                //{
-                //    if (!list.Contains(e))
-                //    {
-                //        list.Add();
-
-                //        if (!totalEdges.TryGetValue(e.pointA, out list))
-                //        {
-                //            list = new List<Edge>();
-                //            list.Add(new Edge(e.pointB, e.pointA));
-                //            totalEdges.Add(e.pointB, list);
-                //        }
-                //        else
-                //        {
-                //            list.Add(new Edge(e.pointB, e.pointA));
-                //        }
-
-                //        added = true;
-                //    }
-                //    else
-                //    {
-                //        contains = true;
-                //    }
-                //}
-
-                //if(!added && !contains)
-                //{
-                //    List<Edge> newList = new();
-                //    newList.Add(e);
-                //    totalEdges.Add(e.pointA, newList);
-                //}
             }
         }
-
-        //int count = 0;
-        //foreach (KeyValuePair<Vector3, List<Edge>> pair in totalEdges)
-        //{
-        //    foreach (Edge e in pair.Value)
-        //    {
-        //        Debug.DrawLine(e.pointA, e.pointB, Color.red, 999f);
-        //        count++;
-        //    }
-        //}
-        //Debug.Log(count);
-
-        ////Delete edges that pass through other rooms, this happens because tetrahedralization deals with points but we deal with rooms that have sizes
-        //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
-        //{
-        //    foreach(Room room in pair.Value)
-        //    {
-        //        Ray ray = new Ray(room.center, pair.Key.center - room.center);
-        //        if(Physics.Raycast(ray, out RaycastHit data))
-        //        {
-        //Not going to worry about how to get it to understand which room objects belong to which rooms yet for raycast
-        //        }
-        //    }
-        //}
     }
 
     void AddRandomHallways(ref List<Edge> minSpanTree, ref List<Edge> excluded)
@@ -413,40 +357,37 @@ public class DungeonGenerator : MonoBehaviour
     void ConvertEdgesBackToRooms(List<Edge> finalMap)
     {
         //Match rooms to edges to get room map
-        //foreach (KeyValuePair<Edge, int> pair in totalEdges)
-        //{
-        //    if (pair.Value > 0)
-        //    {
-        //        Room room1 = null;
-        //        Room room2 = null;
+        foreach (Edge e in finalMap)
+        {
+            Room room1 = null;
+            Room room2 = null;
 
-        //        foreach (Room room in rooms)
-        //        {
-        //            if (room.center == pair.Key.pointA)
-        //            {
-        //                room1 = room;
-        //            }
-        //            else if (room.center == pair.Key.pointB)
-        //            {
-        //                room2 = room;
-        //            }
-        //        }
+            foreach (Room room in rooms)
+            {
+                if (room.center == e.pointA)
+                {
+                    room1 = room;
+                }
+                else if (room.center == e.pointB)
+                {
+                    room2 = room;
+                }
+            }
 
-        //        if (room1 != null && room2 != null)
-        //        {
-        //            if (roomMap.TryGetValue(room1, out List<Room> roomList))
-        //            {
-        //                roomList.Add(room2);
-        //            }
-        //            else
-        //            {
-        //                List<Room> newRooms = new List<Room>();
-        //                newRooms.Add(room2);
-        //                roomMap.Add(room1, newRooms);
-        //            }
-        //        }
-        //    }
-        //}
+            if (room1 != null && room2 != null)
+            {
+                if (roomMap.TryGetValue(room1, out List<Room> roomList))
+                {
+                    roomList.Add(room2);
+                }
+                else
+                {
+                    List<Room> newRooms = new List<Room>();
+                    newRooms.Add(room2);
+                    roomMap.Add(room1, newRooms);
+                }
+            }
+        }
     }
 
     void CarveHallways()
@@ -493,14 +434,14 @@ public class DungeonGenerator : MonoBehaviour
             //    }
             //}
 
-            //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
-            //{
-            //    Gizmos.color = Color.red;
-            //    foreach (Room room in pair.Value)
-            //    {
-            //        Gizmos.DrawLine(pair.Key.center, room.center);
-            //    }
-            //}
+            foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
+            {
+                Gizmos.color = Color.green;
+                foreach (Room room in pair.Value)
+                {
+                    Gizmos.DrawLine(pair.Key.center, room.center);
+                }
+            }
 
             //Gizmos.DrawSphere(superTetrahedron.circumSphere.center, superTetrahedron.circumSphere.radius);
             //superTetrahedron.DrawGizmos();
@@ -528,7 +469,7 @@ public class DungeonGenerator : MonoBehaviour
 
             //    foreach (Room connectedRoom in pair.Value)
             //    {
-            //        Gizmos.color = Color.red;
+            //        Gizmos.color = Color.green;
             //        Gizmos.DrawLine(currentRoom.cells[0].center, connectedRoom.cells[0].center);
             //    }
             //}
