@@ -343,7 +343,6 @@ GameObject:
   - component: {fileID: 1459068378}
   - component: {fileID: 1459068377}
   - component: {fileID: 1459068379}
-  - component: {fileID: 1459068380}
   m_Layer: 0
   m_Name: DungeonGenerator
   m_TagString: Untagged
@@ -391,27 +390,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7358060b9e273e4c963b423587352ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  room: {fileID: 8132880929042404955, guid: 2258075479def3b49b6ed56f2b57eec5, type: 3}
-  roomParent: {fileID: 1240957116}
-  numRandomRooms: 10
-  maxSize: {x: 3, y: 1, z: 3}
-  minSize: {x: 1, y: 1, z: 1}
   cellWidth: 2
   cellHeight: 2
   cellDepth: 2
   cellCountX: 20
   cellCountY: 10
   cellCountZ: 20
-  rooms: []
---- !u!114 &1459068380
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1459068376}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 474532ddbbc3f9445a1f0ce4e3809c56, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  room: {fileID: 8132880929042404955, guid: 2258075479def3b49b6ed56f2b57eec5, type: 3}
+  roomParent: {fileID: 1240957116}
+  numRandomRooms: 10
+  maxSize: {x: 3, y: 1, z: 3}
+  minSize: {x: 1, y: 1, z: 1}
+  extraHallwaysFactor: 0.3

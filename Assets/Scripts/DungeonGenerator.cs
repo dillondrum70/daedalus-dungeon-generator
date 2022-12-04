@@ -65,15 +65,9 @@ public class Room : IEquatable<Room>
 
 public class DungeonGenerator : MonoBehaviour
 {
-    [SerializeField] GameObject room;
-    [SerializeField] GameObject roomParent;
-
-    [SerializeField] int numRandomRooms = 4;
-    [SerializeField] Vector3 maxSize = new Vector3(3, 1, 3);
-    [SerializeField] Vector3 minSize = new Vector3(1, 1, 1);
-
     Grid grid;
 
+    [Header("Cell Dimensions")]
     //Dimensions of cell
     [SerializeField] float cellWidth = 2.0f;   //X
     [SerializeField] float cellHeight = 2.0f;  //Y
@@ -84,6 +78,7 @@ public class DungeonGenerator : MonoBehaviour
         get { return new Vector3(cellWidth, cellHeight, cellDepth); }
     }
 
+    [Header("Grid Dimensions")]
     //Number of cells in each direction
     [SerializeField] int cellCountX = 10;
     [SerializeField] int cellCountY = 10;
@@ -94,7 +89,19 @@ public class DungeonGenerator : MonoBehaviour
         get { return new Vector3(cellCountX, cellCountY, cellCountZ); }
     }
 
-    [SerializeField] List<Room> rooms;
+    [Header("Room Placement")]
+    [SerializeField] GameObject room;
+    [SerializeField] GameObject roomParent;
+
+    [Header("Room Parameters")]
+    [SerializeField] int numRandomRooms = 4;
+    [SerializeField] Vector3 maxSize = new Vector3(3, 1, 3);
+    [SerializeField] Vector3 minSize = new Vector3(1, 1, 1);
+
+    [Header("Hallway Parameters")]
+    [SerializeField] float extraHallwaysFactor = .5f;   //Adds (<extra> * leftover room count) number of rooms after minimum spanning tree determined
+
+    List<Room> rooms = new();
 
     List<Tetrahedron> tetrahedrons = new List<Tetrahedron>();
 
@@ -103,14 +110,13 @@ public class DungeonGenerator : MonoBehaviour
     //Will store adjacency list of edges in tetrahedralization excluding duplicates
     Dictionary<Vector3, List<Edge>> totalEdges = new Dictionary<Vector3, List<Edge>>();
 
-    MinimumSpanningTree minAlgorithm;   //We make this a component so we can use DrawGizmos within the class itself
+    MinimumSpanningTree minAlgorithm = new();
 
     //Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
     private void Start()
     {
         grid = GetComponent<Grid>();
-        minAlgorithm = GetComponent<MinimumSpanningTree>();
 
         grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
 
@@ -160,7 +166,16 @@ public class DungeonGenerator : MonoBehaviour
         
         List<Edge> minSpanTree = minAlgorithm.DerriveMST(out List<Edge> excluded, start, totalEdges);
 
-        AddRandomHallways(ref minSpanTree, excluded);
+        AddRandomHallways(ref minSpanTree, ref excluded);
+
+        foreach (Edge e in minSpanTree)
+        {
+            Debug.DrawLine(e.pointA, e.pointB, Color.green, 5f);
+        }
+        foreach (Edge e in excluded)
+        {
+            Debug.DrawLine(e.pointA, e.pointB, Color.red, 5f);
+        }
 
         ConvertEdgesBackToRooms(minSpanTree);
 
@@ -381,9 +396,18 @@ public class DungeonGenerator : MonoBehaviour
         //}
     }
 
-    void AddRandomHallways(ref List<Edge> minSpanTree, List<Edge> excluded)
+    void AddRandomHallways(ref List<Edge> minSpanTree, ref List<Edge> excluded)
     {
         //Add random number of edges from excluded to minSpanTree
+        int numHalls = (int)(extraHallwaysFactor * excluded.Count);
+
+        for(int i = 0; i < numHalls; i++)
+        {
+            int hallIndex = UnityEngine.Random.Range(0, excluded.Count - 1);
+
+            minSpanTree.Add(excluded[i]);
+            excluded.RemoveAt(i);
+        }
     }
 
     void ConvertEdgesBackToRooms(List<Edge> finalMap)

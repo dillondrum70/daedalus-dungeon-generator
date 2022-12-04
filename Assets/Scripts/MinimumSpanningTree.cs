@@ -3,11 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MinimumSpanningTree : MonoBehaviour
+public class MinimumSpanningTree
 {
     HashSet<Vector3> visited = new();       //Which nodes have already been visited
     List<Edge> solution = new();            //Stores edges of minimum spanning tree
-    List<Edge> notSolution = new();         //Edges not in solution
+    //List<Edge> notSolution = new();         //Edges not in solution
     PriorityQueue<Edge> frontier = new();   //Edges left to check, sorted shortest to longest top to bottom
     Dictionary<Vector3, List<Edge>> adjacencyList = new();  //Edges of entire connected graph (undirected)
 
@@ -38,9 +38,8 @@ public class MinimumSpanningTree : MonoBehaviour
             //Log that that point has been visited
             //Our graph is undirected so we visit both points since we might be coming from pointB to pointA
             Visit(current.pointB);
-            //Visit(current.pointA);
         }
-        notSolution = excluded;
+        //notSolution = excluded;
         return solution;
     }
 
@@ -68,19 +67,19 @@ public class MinimumSpanningTree : MonoBehaviour
         adjacencyList.Clear();
     }
 
-    private void OnDrawGizmos()
-    {
-        foreach (Edge e in notSolution)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(e.pointA, e.pointB);
-        }
-        foreach (Edge e in solution)
-        {
-            Gizmos.color = Color.green;
-            Gizmos.DrawLine(e.pointA, e.pointB);
-        }
-    }
+    //private void OnDrawGizmos()
+    //{
+    //    foreach (Edge e in notSolution)
+    //    {
+    //        Gizmos.color = Color.red;
+    //        Gizmos.DrawLine(e.pointA, e.pointB);
+    //    }
+    //    foreach (Edge e in solution)
+    //    {
+    //        Gizmos.color = Color.green;
+    //        Gizmos.DrawLine(e.pointA, e.pointB);
+    //    }
+    //}
 }
 
 //Adapted from https://www.dotnetlovers.com/article/231/priority-queue#:~:text=Implementation%20of%20Priority%20Queue%20using%20Heap&text=Unlike%20ordinary%20queues%2C%20a%20priority,highest%20priority%20can%20be%20fetched.
