@@ -362,7 +362,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feac98380aa3aae4c8a9c8e29ab0a026, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  drawGrid: 1
+  drawGrid: 0
 --- !u!4 &1459068378
 Transform:
   m_ObjectHideFlags: 0
@@ -403,4 +403,4 @@ MonoBehaviour:
   minSize: {x: 1, y: 1, z: 1}
   hall: {fileID: 1466790304378640822, guid: 021d8602b31a7b242835de6b2ac14aa9, type: 3}
   extraHallwaysFactor: 0.3
-  test: {x: 5, y: 5, z: 0}
+  test: {x: 5, y: 5, z: 5}

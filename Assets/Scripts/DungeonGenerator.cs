@@ -115,7 +115,7 @@ public class DungeonGenerator : MonoBehaviour
 
     Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
-    //[SerializeField] Vector3Int test;
+    [SerializeField] Vector3Int test;
 
     private void Start()
     {
@@ -164,6 +164,8 @@ public class DungeonGenerator : MonoBehaviour
         //{
         //    foreach (AStarNode node in path)
         //    {
+        //        grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
+
         //        Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
         //        trans = Instantiate(hall, pos, Quaternion.identity, roomParent.transform).transform;
 
@@ -419,18 +421,33 @@ public class DungeonGenerator : MonoBehaviour
         {
             foreach(Room room in pair.Value)
             {
-                Stack<AStarNode> path = AStar.Run(grid.GetGridIndices(pair.Key.center), grid.GetGridIndices(room.center), grid);
+                Vector3 goal = room.cells[0].center;
+                for(int i = 1; i < room.cells.Count; i++)
+                {
+                    if((goal - pair.Key.center).sqrMagnitude > (room.cells[i].center - pair.Key.center).sqrMagnitude)
+                    {
+                        goal = room.cells[i].center;
+                    }
+                }
+
+                Stack<AStarNode> path = AStar.Run(grid.GetGridIndices(pair.Key.center), grid.GetGridIndices(goal), grid);
 
                 //path might return null if A* failed
                 if(path != null)
                 {
                     foreach (AStarNode node in path)
                     {
+                        grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
+
                         Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
                         Transform trans = Instantiate(hall, pos, Quaternion.identity, roomParent.transform).transform;
 
                         trans.localScale = CellDimensions;
                     }
+                }
+                else
+                {
+                    Debug.LogError("A Star Failed");
                 }
             }    
         }

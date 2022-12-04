@@ -60,7 +60,7 @@ public class AStar : MonoBehaviour
     static PriorityQueue<AStarNode> open;
     static PriorityQueue<AStarNode> closed;
 
-    public static Stack<AStarNode> Run(Vector3Int startIndex, Vector3Int goalIndex, Grid grid)
+    public static Stack<AStarNode> Run(Vector3Int startIndex, Vector3Int goalIndex/*, Room goalRoom*/, Grid grid)
     {
         if(!grid.IsValidCell(goalIndex))
         {
@@ -87,28 +87,28 @@ public class AStar : MonoBehaviour
                 Stack<AStarNode> result;
                 //Get index of cell to the north of the current cell
                 Vector3Int north = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z + 1);
-                result = CheckCell(current, north, goalIndex, grid);
+                result = CheckCell(current, north, goalIndex, grid, (y == 0));
                 if(result != null)
                 {
                     return result;
                 }
 
                 Vector3Int south = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z - 1);
-                result = CheckCell(current, south, goalIndex, grid);
+                result = CheckCell(current, south, goalIndex, grid, (y == 0));
                 if (result != null)
                 {
                     return result;
                 }
 
                 Vector3Int west = new Vector3Int(current.indices.x + 1, current.indices.y + y, current.indices.z);
-                result = CheckCell(current, west, goalIndex, grid);
+                result = CheckCell(current, west, goalIndex, grid, (y == 0));
                 if (result != null)
                 {
                     return result;
                 }
 
                 Vector3Int east = new Vector3Int(current.indices.x - 1, current.indices.y + y, current.indices.z);
-                result = CheckCell(current, east, goalIndex, grid);
+                result = CheckCell(current, east, goalIndex, grid, (y == 0));
                 if (result != null)
                 {
                     return result;
@@ -130,7 +130,7 @@ public class AStar : MonoBehaviour
         return (Mathf.Abs(currentIndex.x - goalIndex.x) + Mathf.Abs(currentIndex.y - goalIndex.y) + Mathf.Abs(currentIndex.z - goalIndex.z)) * 1.001f;
     }
 
-    static Stack<AStarNode> CheckCell(AStarNode current, Vector3Int nextIndex, Vector3Int goalIndex, Grid grid)
+    static Stack<AStarNode> CheckCell(AStarNode current, Vector3Int nextIndex, Vector3Int goalIndex, Grid grid, bool canOverlap)
     {
         //If the cell is within the bounds of the grid
         if (grid.IsValidCell(nextIndex))
@@ -138,14 +138,15 @@ public class AStar : MonoBehaviour
             AStarNode nextNode = new AStarNode(nextIndex, current.g + 1, FindH(nextIndex, goalIndex), current);
 
             //If nextIndex is the goal index
-            if (nextIndex == goalIndex)
+            if (nextIndex == goalIndex && current.indices.y == goalIndex.y)
             {
                 //End
                 return TraceBackPath(current);
             }
 
             //Push the cell to the open list with its corresponding values for g and h, set current node as its parent
-            if (grid.IsCellEmpty(nextIndex))
+            //We can have hallways overlap, but we don't want staircases to overlap hallways or that could get messy, gives us more 
+            if (canOverlap || grid.IsCellEmpty(nextIndex))
             {
                 //Skip this cell if open or closed has a node with a lower f value, that means this one is obsolete
                 //Make sure to null check the results before continuing in case a node does not exist with those indices
@@ -153,6 +154,9 @@ public class AStar : MonoBehaviour
                 AStarNode closeNode = closed[nextIndex];
                 if ((openNode == null || openNode?.f >= nextNode.f) && (closeNode == null || closeNode?.f >= nextNode.f))
                 {
+                    //Transform trans = Instantiate(GameObject.CreatePrimitive(PrimitiveType.Cube), new Vector3((nextIndex.x * grid.CellDimensions.x), (nextIndex.y * grid.CellDimensions.y), (nextIndex.z * grid.CellDimensions.z)), Quaternion.identity, GameObject.Find("Rooms").transform).transform;
+
+                    //trans.localScale = grid.CellDimensions;
                     open.Push(nextNode);
                 }
             }
