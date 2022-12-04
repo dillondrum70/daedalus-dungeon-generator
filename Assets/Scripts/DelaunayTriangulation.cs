@@ -45,7 +45,7 @@ public class Edge : IEquatable<Edge>, IComparable<Edge>
                ((lhs.pointA == rhs.pointB) && (lhs.pointB == rhs.pointA));
         }
 
-        return lhs is Edge && rhs is Edge;
+        return lhs is null && rhs is null;
     } 
 
     public static bool operator !=(Edge lhs, Edge rhs)

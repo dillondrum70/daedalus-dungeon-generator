@@ -93,13 +93,13 @@ public class Grid : MonoBehaviour
         return new Vector3(x, y, z);
     }
 
-    public Vector3 GetGridIndices(Vector3 pos)
+    public Vector3Int GetGridIndices(Vector3 pos)
     {
-        float x = Mathf.Floor(pos.x / cellWidth);
-        float y = Mathf.Floor(pos.y / cellHeight);
-        float z = Mathf.Floor(pos.z / cellDepth);
+        int x = (int)Mathf.Floor(pos.x / cellWidth);
+        int y = (int)Mathf.Floor(pos.y / cellHeight);
+        int z = (int)Mathf.Floor(pos.z / cellDepth);
 
-        return new Vector3(x, y, z);
+        return new Vector3Int(x, y, z);
     }
 
     public Vector3 GetCenterByIndices(Vector3 indices)
@@ -111,29 +111,44 @@ public class Grid : MonoBehaviour
         return new Vector3(x, y, z);
     }
 
-    public bool CanPlaceRoom(Vector3 roomIndex, Room room)
+    public bool CanPlaceRoom(Vector3Int roomIndex, Room room)
+    {
+        return IsValidCell(roomIndex) && IsCellEmpty(roomIndex) && NotAdjacentToFilledRoom(roomIndex, room);
+    }
+
+    public bool IsValidCell(Vector3Int index)
     {
         //In Bounds
-        if (roomIndex.x < 0 || roomIndex.x >= GridDimensions.x ||
-            roomIndex.y < 0 || roomIndex.y >= GridDimensions.y ||
-            roomIndex.z < 0 || roomIndex.z >= GridDimensions.z)
+        if (index.x < 0 || index.x >= GridDimensions.x ||
+            index.y < 0 || index.y >= GridDimensions.y ||
+            index.z < 0 || index.z >= GridDimensions.z)
         {
             return false;
         }
 
+        return true;
+    }
+
+    public bool IsCellEmpty(Vector3Int index)
+    {
         //Not inside room
-        if (cells[(int)roomIndex.x, (int)roomIndex.y, (int)roomIndex.z].cellType != CellTypes.NONE)
+        if (cells[index.x, index.y, index.z].cellType != CellTypes.NONE)
         {
             return false;
         }
 
+        return true;
+    }
+
+    public bool NotAdjacentToFilledRoom(Vector3Int index, Room room)
+    {
         //Not next to room cell that is not included in this room's cells
-        if ((roomIndex.x + 1 < GridDimensions.x && cells[(int)roomIndex.x + 1, (int)roomIndex.y, (int)roomIndex.z].cellType != CellTypes.NONE && !room.cells.Contains(cells[(int)roomIndex.x + 1, (int)roomIndex.y, (int)roomIndex.z])) ||
-            (roomIndex.x - 1 >= 0 && cells[(int)roomIndex.x - 1, (int)roomIndex.y, (int)roomIndex.z].cellType != CellTypes.NONE && !room.cells.Contains(cells[(int)roomIndex.x - 1, (int)roomIndex.y, (int)roomIndex.z])) ||
-            (roomIndex.y + 1 < GridDimensions.y && cells[(int)roomIndex.x, (int)roomIndex.y + 1, (int)roomIndex.z].cellType != CellTypes.NONE && !room.cells.Contains(cells[(int)roomIndex.x, (int)roomIndex.y + 1, (int)roomIndex.z])) ||
-            (roomIndex.y - 1 >= 0 && cells[(int)roomIndex.x, (int)roomIndex.y - 1, (int)roomIndex.z].cellType != CellTypes.NONE && !room.cells.Contains(cells[(int)roomIndex.x, (int)roomIndex.y - 1, (int)roomIndex.z])) ||
-            (roomIndex.z + 1 < GridDimensions.z && cells[(int)roomIndex.x, (int)roomIndex.y, (int)roomIndex.z + 1].cellType != CellTypes.NONE && !room.cells.Contains(cells[(int)roomIndex.x, (int)roomIndex.y, (int)roomIndex.z + 1])) ||
-            (roomIndex.z - 1 >= 0 && cells[(int)roomIndex.x, (int)roomIndex.y, (int)roomIndex.z - 1].cellType != CellTypes.NONE && !room.cells.Contains(cells[(int)roomIndex.x, (int)roomIndex.y, (int)roomIndex.z - 1])))
+        if ((index.x + 1 < GridDimensions.x && cells[index.x + 1, index.y, index.z].cellType != CellTypes.NONE && !room.cells.Contains(cells[index.x + 1, index.y, index.z])) ||
+            (index.x - 1 >= 0 && cells[index.x - 1, index.y, index.z].cellType != CellTypes.NONE && !room.cells.Contains(cells[index.x - 1, index.y, index.z])) ||
+            (index.y + 1 < GridDimensions.y && cells[index.x, index.y + 1, index.z].cellType != CellTypes.NONE && !room.cells.Contains(cells[index.x, index.y + 1, index.z])) ||
+            (index.y - 1 >= 0 && cells[index.x, index.y - 1, index.z].cellType != CellTypes.NONE && !room.cells.Contains(cells[index.x, index.y - 1, index.z])) ||
+            (index.z + 1 < GridDimensions.z && cells[index.x, index.y, index.z + 1].cellType != CellTypes.NONE && !room.cells.Contains(cells[index.x, index.y, index.z + 1])) ||
+            (index.z - 1 >= 0 && cells[index.x, index.y, index.z - 1].cellType != CellTypes.NONE && !room.cells.Contains(cells[index.x, index.y, index.z - 1])))
         {
             return false;
         }

@@ -45,7 +45,7 @@ public class Room : IEquatable<Room>
         }
 
         //If at least one parameter was null, return true if both are
-        return (lhs is Room && rhs is Room);
+        return lhs is null && rhs is null;
     } 
 
     public static bool operator !=(Room lhs, Room rhs)
@@ -89,16 +89,17 @@ public class DungeonGenerator : MonoBehaviour
         get { return new Vector3(cellCountX, cellCountY, cellCountZ); }
     }
 
-    [Header("Room Placement")]
+    [Header("Room Parameters")]
     [SerializeField] GameObject room;
     [SerializeField] GameObject roomParent;
 
-    [Header("Room Parameters")]
     [SerializeField] int numRandomRooms = 4;
     [SerializeField] Vector3 maxSize = new Vector3(3, 1, 3);
     [SerializeField] Vector3 minSize = new Vector3(1, 1, 1);
 
     [Header("Hallway Parameters")]
+    [SerializeField] GameObject hall;
+
     [SerializeField] float extraHallwaysFactor = .5f;   //Adds (<extra> * leftover room count) number of rooms after minimum spanning tree determined
 
     List<Room> rooms = new();
@@ -113,6 +114,8 @@ public class DungeonGenerator : MonoBehaviour
     MinimumSpanningTree minAlgorithm = new();
 
     Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
+
+    //[SerializeField] Vector3Int test;
 
     private void Start()
     {
@@ -148,6 +151,31 @@ public class DungeonGenerator : MonoBehaviour
 
     void Generate()
     {
+        //Transform trans = Instantiate(room, new Vector3(0 * cellWidth, 0 * cellHeight, 0 * cellDepth), Quaternion.identity, roomParent.transform).transform;
+        //trans.localScale = CellDimensions;
+
+        //trans = Instantiate(room, new Vector3(test.x * cellWidth, test.y * cellHeight, test.z * cellDepth), Quaternion.identity, roomParent.transform).transform;
+        //trans.localScale = CellDimensions;
+
+        //Stack<AStarNode> path = AStar.Run(new Vector3Int(0, 0, 0), test, grid);
+
+        ////path might return null if A* failed
+        //if (path != null)
+        //{
+        //    foreach (AStarNode node in path)
+        //    {
+        //        Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
+        //        trans = Instantiate(hall, pos, Quaternion.identity, roomParent.transform).transform;
+
+        //        trans.localScale = CellDimensions;
+        //    }
+        //}
+        //else
+        //{
+        //    Debug.Log("null");
+        //}
+
+        double realtime = Time.realtimeSinceStartupAsDouble;
         GenerateRandomRooms();
 
         CreateConnectedMap();
@@ -155,7 +183,7 @@ public class DungeonGenerator : MonoBehaviour
         Vector3 start = Vector3.zero;
         IEnumerator enumerator = totalEdges.Keys.GetEnumerator(); //Get enumerator of keys
         bool success = enumerator.MoveNext();   //Move to first key
-        if(success) //Check that key exists
+        if (success) //Check that key exists
         {
             start = (Vector3)enumerator.Current;    //Get key
         }
@@ -163,27 +191,23 @@ public class DungeonGenerator : MonoBehaviour
         {
             throw new Exception("No keys in edge map.  Can not execute MST");
         }
-        
+
         List<Edge> minSpanTree = minAlgorithm.DerriveMST(out List<Edge> excluded, start, totalEdges);
 
         AddRandomHallways(ref minSpanTree, ref excluded);
 
-        //foreach (Edge e in minSpanTree)
-        //{
-        //    Debug.DrawLine(e.pointA, e.pointB, Color.green, 20f);
-        //}
-        //foreach (Edge e in excluded)
-        //{
-        //    Debug.DrawLine(e.pointA, e.pointB, Color.red, 20f);
-        //}
-
         ConvertEdgesBackToRooms(minSpanTree);
 
         CarveHallways();
+
+        Debug.Log("Algorithm Time: " + (float)(Time.realtimeSinceStartupAsDouble - realtime) + " seconds");
     }
 
     void GenerateRandomRooms()
     {
+        //To add noise for pseudo-randomness, we could sample perlin noise at the worldspace position of each cell (or average perlin noise in each cell from
+        //a set of candidate points) and, if it is above some threshold, we make it a room.
+
         for (int i = 0; i < numRandomRooms; i++)
         {
             Vector3 randPos = Vector3.zero;
@@ -230,7 +254,7 @@ public class DungeonGenerator : MonoBehaviour
             //}
 
             Vector3 gridCenter = grid.GetCenter(randPos);
-            Vector3 gridIndices = grid.GetGridIndices(randPos);
+            Vector3Int gridIndices = grid.GetGridIndices(randPos);
 
             //Make sure room exists before defining one for the map
             if (gridIndices.x < GridDimensions.x && gridIndices.x >= 0 &&
@@ -247,7 +271,7 @@ public class DungeonGenerator : MonoBehaviour
                         for (int l = 0; l < randSize.z; l++)
                         {
                             //Get index of current space based on first grid index (gridIndices) plus the indices of (j, k, l)
-                            Vector3 currentIndices = gridIndices + new Vector3(j, k, l);
+                            Vector3Int currentIndices = gridIndices + new Vector3Int(j, k, l);
 
                             //Check that placing a room here is a valid action
                             if(!grid.CanPlaceRoom(currentIndices, newRoom))
@@ -276,7 +300,6 @@ public class DungeonGenerator : MonoBehaviour
 
     void CreateConnectedMap()
     {
-
         superTetrahedron = new Tetrahedron(
             new Vector3(-cellWidth * cellCountX, -cellHeight * cellCountY, -cellDepth * cellCountZ) * 2,
             new Vector3(cellWidth * cellCountX * 4, -cellHeight, -cellDepth),
@@ -392,7 +415,25 @@ public class DungeonGenerator : MonoBehaviour
 
     void CarveHallways()
     {
+        foreach(KeyValuePair<Room, List<Room>> pair in roomMap)
+        {
+            foreach(Room room in pair.Value)
+            {
+                Stack<AStarNode> path = AStar.Run(grid.GetGridIndices(pair.Key.center), grid.GetGridIndices(room.center), grid);
 
+                //path might return null if A* failed
+                if(path != null)
+                {
+                    foreach (AStarNode node in path)
+                    {
+                        Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
+                        Transform trans = Instantiate(hall, pos, Quaternion.identity, roomParent.transform).transform;
+
+                        trans.localScale = CellDimensions;
+                    }
+                }
+            }    
+        }
     }
 
     private void OnDrawGizmos()
