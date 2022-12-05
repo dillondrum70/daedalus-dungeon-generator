@@ -69,10 +69,11 @@ public class AStarNode : IComparable<AStarNode>
 public class AStar : MonoBehaviour
 {
     public const float sqrt2 = 1.414f;
+    const int stairCost = 5;
     static PriorityQueue<AStarNode> open;
     static PriorityQueue<AStarNode> closed;
 
-    public static Stack<AStarNode> Run(Vector3Int startIndex, Vector3Int goalIndex/*, Room goalRoom*/, Grid grid)
+    public static Stack<AStarNode> Run(Vector3Int startIndex, Vector3Int goalIndex, Room goalRoom, Grid grid)
     {
         if(!grid.IsValidCell(goalIndex))
         {
@@ -90,6 +91,12 @@ public class AStar : MonoBehaviour
         {
             AStarNode current = open.Top();
             open.Pop();
+
+            if (current.indices == goalIndex || goalRoom.HasLevelAdjacentCell(current.indices)/* && current.indices.y == goalIndex.y*/)
+            {
+                //End
+                return TraceBackPath(current);
+            }
 
             //Figure out which direction we came from so we know not to backtrack that direction
             Directions cameFromDirection = Directions.UNDEFINED;
@@ -110,7 +117,7 @@ public class AStar : MonoBehaviour
                 {
                     //Get index of cell to the north of the current cell
                     Vector3Int north = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z + 1);
-                    result = CheckCell(current, north, goalIndex, grid, (y == 0), cameFromDirection);
+                    result = CheckCell(current, north, goalIndex, goalRoom, grid, (y == 0), cameFromDirection);
                     if (result != null)
                     {
                         return result;
@@ -120,7 +127,7 @@ public class AStar : MonoBehaviour
                 if(cameFromDirection != Directions.SOUTH)
                 {
                     Vector3Int south = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z - 1);
-                    result = CheckCell(current, south, goalIndex, grid, (y == 0), cameFromDirection);
+                    result = CheckCell(current, south, goalIndex, goalRoom, grid, (y == 0), cameFromDirection);
                     if (result != null)
                     {
                         return result;
@@ -130,7 +137,7 @@ public class AStar : MonoBehaviour
                 if(cameFromDirection != Directions.WEST)
                 {
                     Vector3Int west = new Vector3Int(current.indices.x + 1, current.indices.y + y, current.indices.z);
-                    result = CheckCell(current, west, goalIndex, grid, (y == 0), cameFromDirection);
+                    result = CheckCell(current, west, goalIndex, goalRoom, grid, (y == 0), cameFromDirection);
                     if (result != null)
                     {
                         return result;
@@ -140,7 +147,7 @@ public class AStar : MonoBehaviour
                 if(cameFromDirection != Directions.EAST)
                 {
                     Vector3Int east = new Vector3Int(current.indices.x - 1, current.indices.y + y, current.indices.z);
-                    result = CheckCell(current, east, goalIndex, grid, (y == 0), cameFromDirection);
+                    result = CheckCell(current, east, goalIndex, goalRoom, grid, (y == 0), cameFromDirection);
                     if (result != null)
                     {
                         return result;
@@ -163,7 +170,7 @@ public class AStar : MonoBehaviour
         return (Mathf.Abs(currentIndex.x - goalIndex.x) + Mathf.Abs(currentIndex.y - goalIndex.y) + Mathf.Abs(currentIndex.z - goalIndex.z)) * 1.001f;
     }
 
-    static Stack<AStarNode> CheckCell(AStarNode current, Vector3Int nextIndex, Vector3Int goalIndex, Grid grid, bool hallsCanOverlap, Directions lastDirection)
+    static Stack<AStarNode> CheckCell(AStarNode current, Vector3Int nextIndex, Vector3Int goalIndex, Room goalRoom, Grid grid, bool hallsCanOverlap, Directions lastDirection)
     {
         //If the cell is within the bounds of the grid
         if (grid.IsValidCell(nextIndex))
@@ -174,11 +181,17 @@ public class AStar : MonoBehaviour
             //If we want to allow staircases to lead down into rooms with the staircase physically inside the room instead of
             //right outside the room entrance, we can remove "current.indices.y == goalIndex.y" or make it <= for just staircases
             //leading up from below
-            if (nextIndex == goalIndex && current.indices.y == goalIndex.y)
-            {
-                //End
-                return TraceBackPath(current);
-            }
+            //if (nextIndex == goalIndex/* && current.indices.y == goalIndex.y*/)
+            //{
+            //    //End
+            //    return TraceBackPath(current);
+            //}
+
+            //If we are adjacent to a cell the room contains, return path
+            //if(goalRoom.HasAdjacentCell(nextIndex))
+            //{
+            //    return TraceBackPath(nextNode);
+            //}
 
             //Push the cell to the open list with its corresponding values for g and h, set current node as its parent
             //We can have hallways overlap, but we don't want staircases to overlap hallways or that could get messy, gives us more 
@@ -214,6 +227,7 @@ public class AStar : MonoBehaviour
                             if (grid.IsCellEmpty(levelIndex))
                             {
                                 nextNode.nodeType = CellTypes.STAIRS;
+                                nextNode.g += stairCost - 1;
                                 open.Push(nextNode);
                             }
                         }

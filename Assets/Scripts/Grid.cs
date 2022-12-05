@@ -14,6 +14,7 @@ public struct Cell
 {
     public Vector3 center;
     public Vector3 sizes;
+    public Vector3Int index;
 
     public CellTypes cellType; //Specifies that this space is a room space
 
@@ -79,6 +80,7 @@ public class Grid : MonoBehaviour
                     cells[i, j, k].cellType = CellTypes.NONE;
                     cells[i, j, k].center = new Vector3(i * cellWidth, j * cellHeight, k * cellDepth);
                     cells[i, j, k].sizes = new Vector3(cellWidth, cellHeight, cellDepth);
+                    cells[i, j, k].index = new Vector3Int(i, j, k);
                 }
             }
         }

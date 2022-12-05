@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 
 [Serializable]
@@ -28,6 +29,20 @@ public class Room : IEquatable<Room>
         avgPos = avgPos / cells.Count;
 
         center = avgPos;
+    }
+
+    //If one of the cells in the room is next to the passed index (not above or below), return true
+    public bool HasLevelAdjacentCell(Vector3Int index)
+    {
+        foreach(Cell c in cells)
+        {
+            if((c.index - index).sqrMagnitude == 1 && index.y == c.index.y)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public bool Equals(Room other)
@@ -426,27 +441,30 @@ public class DungeonGenerator : MonoBehaviour
                 float realtime = Time.realtimeSinceStartup;
 
                 //find closest room cell in the goal room and make that our A* target
-                Vector3 goal = room.cells[0].center;
-                for(int i = 1; i < room.cells.Count; i++)
-                {
-                    if((goal - pair.Key.center).sqrMagnitude > (room.cells[i].center - pair.Key.center).sqrMagnitude)
-                    {
-                        goal = room.cells[i].center;
-                    }
-                }
+                //Vector3 goal = room.cells[0].center;
+                //for(int i = 1; i < room.cells.Count; i++)
+                //{
+                //    if((goal - pair.Key.center).sqrMagnitude > (room.cells[i].center - pair.Key.center).sqrMagnitude)
+                //    {
+                //        goal = room.cells[i].center;
+                //    }
+                //}
 
-                //Find closest room to start from
-                Vector3 start = pair.Key.cells[0].center;
-                for (int i = 1; i < pair.Key.cells.Count; i++)
-                {
-                    if ((start - goal).sqrMagnitude > (pair.Key.cells[i].center - goal).sqrMagnitude)
-                    {
-                        start = pair.Key.cells[i].center;
-                    }
-                }
+                ////Find closest room to start from
+                //Vector3 start = pair.Key.cells[0].center;
+                //for (int i = 1; i < pair.Key.cells.Count; i++)
+                //{
+                //    if ((start - goal).sqrMagnitude > (pair.Key.cells[i].center - goal).sqrMagnitude)
+                //    {
+                //        start = pair.Key.cells[i].center;
+                //    }
+                //}
 
                 Vector3Int startIndices = grid.GetGridIndices(pair.Key.center);
-                Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(goal), grid);
+                Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(room.center), room, grid);
+
+                Transform pathParent = new GameObject().transform;
+                pathParent.parent = roomParent.transform;
 
                 //path might return null if A* failed
                 if(path != null)
@@ -463,27 +481,27 @@ public class DungeonGenerator : MonoBehaviour
                             //Stair cell
                             grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
 
-                            Transform trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), roomParent.transform).transform; //Spawn stairwell
+                            Transform trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), pathParent).transform; //Spawn stairwell
                             trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
 
                             //Stairspace cell
                             pos += new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
                             //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
                             grid.GetCell(new Vector3(node.indices.x, node.indices.y + 1, node.indices.z)).cellType = CellTypes.STAIRSPACE;
-                            trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stairspace
+                            trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, pathParent).transform; //Spawn stairspace
                             trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                         }
                         else if(node.indices.y > lastIndices.y) //Stairwell up
                         {
                             //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
                             grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stair space
-                            Transform trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stair space
+                            Transform trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, pathParent).transform; //Spawn stair space
                             trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
 
                             //Stair cell
                             pos -= new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
                             grid.GetCell(new Vector3(node.indices.x, node.indices.y - 1, node.indices.z)).cellType = CellTypes.STAIRS;  //Mark as stairs
-                            trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), roomParent.transform).transform; //Spawn stair
+                            trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), pathParent).transform; //Spawn stair
                             trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                         }
                         else //Hallway
@@ -492,7 +510,7 @@ public class DungeonGenerator : MonoBehaviour
                             grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
 
                             //Spawn hallway
-                            Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, roomParent.transform).transform;
+                            Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, pathParent).transform;
 
                             //Scale the unit to fit the grid cell
                             trans.localScale = CellDimensions;
