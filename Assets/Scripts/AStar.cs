@@ -137,7 +137,7 @@ public class AStar : MonoBehaviour
 
                 if (lastDirection != constEast)
                 {
-                    Vector3Int east = new Vector3Int(current.indices.x - 1, current.indices.y + y, current.indices.z);
+                    Vector3Int east = new Vector3Int(current.indices.x + 1, current.indices.y + y, current.indices.z);
                     result = CheckCell(current, east, goalIndex, goalRoom, grid);
                     if (result != null)
                     {
@@ -147,7 +147,7 @@ public class AStar : MonoBehaviour
 
                 if (lastDirection != constWest)
                 {
-                    Vector3Int west = new Vector3Int(current.indices.x + 1, current.indices.y + y, current.indices.z);
+                    Vector3Int west = new Vector3Int(current.indices.x - 1, current.indices.y + y, current.indices.z);
                     result = CheckCell(current, west, goalIndex, goalRoom, grid);
                     if (result != null)
                     {
