@@ -46,12 +46,15 @@ public class Room : IEquatable<Room>
     }
 
     //If one of the cells in the room is next to the passed index (not above or below), return true
-    public bool HasLevelAdjacentCell(Vector3Int index)
+    public bool HasLevelAdjacentCell(Vector3Int index, out Cell adjacentCell)
     {
+        adjacentCell = default;
+
         foreach(Cell c in cells)
         {
             if((c.index - index).sqrMagnitude == 1 && index.y == c.index.y)
             {
+                adjacentCell = c;
                 return true;
             }
         }
@@ -59,7 +62,22 @@ public class Room : IEquatable<Room>
         return false;
     }
 
-    
+    //If one of the cells in the room matches the passed index, return true
+    public bool ContainsIndex(Vector3Int index, out Cell outCell)
+    {
+        outCell = default;
+        foreach (Cell c in cells)
+        {
+            if (index == c.index)
+            {
+                outCell = c;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     //Returns the indices of the closest room to the goal index that has an open side so A star can perform
     public Vector3Int ClosestValidStartRoom(Vector3 goalIndex, Grid grid)
@@ -145,7 +163,8 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] Vector3 maxSize = new Vector3(3, 1, 3);
     [SerializeField] Vector3 minSize = new Vector3(1, 1, 1);
 
-    [Header("Hallway Parameters")]
+    [Header("Path Parameters")]
+    [SerializeField] GameObject pathParent;
     [SerializeField] GameObject hallPrefab;
     [SerializeField] GameObject stairsPrefab;
     [SerializeField] GameObject stairSpacePrefab;
@@ -193,6 +212,10 @@ public class DungeonGenerator : MonoBehaviour
         totalEdges.Clear();
         roomMap.Clear();
         foreach(Transform child in roomParent.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        foreach (Transform child in pathParent.transform)
         {
             Destroy(child.gameObject);
         }
@@ -499,8 +522,9 @@ public class DungeonGenerator : MonoBehaviour
                 {
                     Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(room.center), room, grid);
 
-                    Transform pathParent = new GameObject().transform;
-                    pathParent.parent = roomParent.transform;
+                    Transform currentPathParent = new GameObject().transform;
+                    currentPathParent.name = "Path";
+                    currentPathParent.parent = pathParent.transform;
 
                     //path might return null if A* failed
                     if (path != null)
@@ -517,27 +541,27 @@ public class DungeonGenerator : MonoBehaviour
                                 //Stair cell
                                 grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
 
-                                Transform trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), pathParent).transform; //Spawn stairwell
+                                Transform trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), currentPathParent).transform; //Spawn stairwell
                                 trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
 
                                 //Stairspace cell
                                 pos += new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
                                                                       //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
                                 grid.GetCell(new Vector3(node.indices.x, node.indices.y + 1, node.indices.z)).cellType = CellTypes.STAIRSPACE;
-                                trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, pathParent).transform; //Spawn stairspace
+                                trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, currentPathParent).transform; //Spawn stairspace
                                 trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                             }
                             else if (node.indices.y > lastIndices.y) //Stairwell up
                             {
                                 //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
                                 grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stair space
-                                Transform trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, pathParent).transform; //Spawn stair space
+                                Transform trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, currentPathParent).transform; //Spawn stair space
                                 trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
 
                                 //Stair cell
                                 pos -= new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
                                 grid.GetCell(new Vector3(node.indices.x, node.indices.y - 1, node.indices.z)).cellType = CellTypes.STAIRS;  //Mark as stairs
-                                trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), pathParent).transform; //Spawn stair
+                                trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), currentPathParent).transform; //Spawn stair
                                 trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                             }
                             else //Hallway
@@ -546,7 +570,7 @@ public class DungeonGenerator : MonoBehaviour
                                 grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
 
                                 //Spawn hallway
-                                Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, pathParent).transform;
+                                Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, currentPathParent).transform;
 
                                 //Scale the unit to fit the grid cell
                                 trans.localScale = CellDimensions;

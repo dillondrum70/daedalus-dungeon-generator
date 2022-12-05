@@ -401,8 +401,40 @@ MonoBehaviour:
   numRandomRooms: 10
   maxSize: {x: 4, y: 1, z: 4}
   minSize: {x: 2, y: 1, z: 2}
+  pathParent: {fileID: 1940476237}
   hallPrefab: {fileID: 6965430385258804789, guid: 0f84e41cdaaa05e49b7a3032209405f2, type: 3}
   stairsPrefab: {fileID: 6965430385258804789, guid: 953aa0c076d8e11408a5456f630ba64c, type: 3}
   stairSpacePrefab: {fileID: 6965430385258804789, guid: e953a451bc1cd5b4188b827bbfeb8520, type: 3}
   extraHallwaysFactor: 0.3
   test: {x: 5, y: 5, z: 5}
+--- !u!1 &1940476237
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1940476238}
+  m_Layer: 0
+  m_Name: Paths
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1940476238
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1940476237}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 9.125823, y: 19.974321, z: 7.420966}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

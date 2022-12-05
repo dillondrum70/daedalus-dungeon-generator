@@ -178,17 +178,22 @@ public class AStar : MonoBehaviour
         {
             AStarNode nextNode = new AStarNode(nextIndex, current.g + 1, FindH(nextIndex, goalIndex), current);
 
-             
-            if (nextIndex == goalIndex && //If nextIndex is the goal index
-                (current.indices.y == nextIndex.y || //and node is not a staircase
-                DirectionCameFrom(current.parent.indices, current.indices) == DirectionCameFrom(current.indices, nextIndex)))//or the staircase faces the room
+            Cell outCell;
+
+            //If the last 
+            //if(current.parent != null && current.parent.nodeType == CellTypes.STAIRS && DirectionCameFrom(current.indices, nextIndex) == DirectionCameFrom(nextIndex, outCell.index))
+            //{
+            //    return TraceBackPath(current);
+            //}
+
+            if (goalRoom.ContainsIndex(nextIndex, out outCell) && current.indices.y == nextIndex.y)//If nextIndex is the in room, trace path with node just before that
             {
                 //End
                 return TraceBackPath(current);
             }
 
             //if nextIndex is adjacent to one of the cells in the room and the next node is not a staircase
-            if (goalRoom.HasLevelAdjacentCell(nextIndex) && current.indices.y == nextIndex.y)
+            if (goalRoom.HasLevelAdjacentCell(nextIndex, out outCell) && current.indices.y == nextIndex.y)
             {
                 return TraceBackPath(nextNode);
             }
