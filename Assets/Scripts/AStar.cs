@@ -71,6 +71,12 @@ public class AStarNode : IComparable<AStarNode>
 public class AStar : MonoBehaviour
 {
     public const float sqrt2 = 1.414f;
+    public static Vector3Int constNorth = Vector3Int.forward;
+    public static Vector3Int constSouth = -Vector3Int.forward;
+    public static Vector3Int constEast = Vector3Int.right;
+    public static Vector3Int constWest = -Vector3Int.right;
+    public static Vector3Int constUndefined = Vector3Int.zero;
+
     const int stairCost = 5;
     static PriorityQueue<AStarNode> open;
     static PriorityQueue<AStarNode> closed;
@@ -93,6 +99,13 @@ public class AStar : MonoBehaviour
             AStarNode current = open.Top();
             open.Pop();
 
+            Vector3Int lastDirection = constUndefined;
+            
+            if(current.parent != null)
+            {
+                lastDirection = DirectionCameFrom(current.parent.indices, current.indices);
+            }
+
             //For each of the 3 levels, add the 4 possible movement directions
             //Hallways can only move:
             //Forward, back, left right, not diagonal horizontally
@@ -100,33 +113,46 @@ public class AStar : MonoBehaviour
             for (int y = -1; y <= 1; y++)
             {
                 Stack<AStarNode> result;
-                //Get index of cell to the north of the current cell
-                Vector3Int north = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z + 1);
-                result = CheckCell(current, north, goalIndex, goalRoom, grid);
-                if (result != null)
+
+                if(lastDirection != constNorth)
                 {
-                    return result;
+                    //Get index of cell to the north of the current cell
+                    Vector3Int north = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z + 1);
+                    result = CheckCell(current, north, goalIndex, goalRoom, grid);
+                    if (result != null)
+                    {
+                        return result;
+                    }
                 }
 
-                Vector3Int south = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z - 1);
-                result = CheckCell(current, south, goalIndex, goalRoom, grid);
-                if (result != null)
+                if(lastDirection != constSouth)
                 {
-                    return result;
+                    Vector3Int south = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z - 1);
+                    result = CheckCell(current, south, goalIndex, goalRoom, grid);
+                    if (result != null)
+                    {
+                        return result;
+                    }
                 }
 
-                Vector3Int west = new Vector3Int(current.indices.x + 1, current.indices.y + y, current.indices.z);
-                result = CheckCell(current, west, goalIndex, goalRoom, grid);
-                if (result != null)
+                if(lastDirection != constWest)
                 {
-                    return result;
+                    Vector3Int west = new Vector3Int(current.indices.x + 1, current.indices.y + y, current.indices.z);
+                    result = CheckCell(current, west, goalIndex, goalRoom, grid);
+                    if (result != null)
+                    {
+                        return result;
+                    }
                 }
 
-                Vector3Int east = new Vector3Int(current.indices.x - 1, current.indices.y + y, current.indices.z);
-                result = CheckCell(current, east, goalIndex, goalRoom, grid);
-                if (result != null)
+                if(lastDirection != constEast)
                 {
-                    return result;
+                    Vector3Int east = new Vector3Int(current.indices.x - 1, current.indices.y + y, current.indices.z);
+                    result = CheckCell(current, east, goalIndex, goalRoom, grid);
+                    if (result != null)
+                    {
+                        return result;
+                    }
                 }
             }
 
@@ -187,10 +213,36 @@ public class AStar : MonoBehaviour
                         {
                             return null;
                         }
-                    }
 
-                    //Push the cell to the open list with its corresponding values for g and h, set current node as its parent
-                    open.Push(nextNode);
+                        /////////////////////////////////
+                        /// Enforce landings after stairs
+                        /////////////////////////////////
+
+                        //Adds the direction value
+                        Vector3Int afterIndex = nextIndex - DirectionCameFrom(current.indices, nextIndex);
+
+                        //We do check cell again on the new hallway, it should not cause an infinite recursive loop since the afterIndex should always
+                        //be a hallway, pushing the actual node is handled in the CheckCell call
+                        Stack<AStarNode> path = CheckCell(nextNode, afterIndex, goalIndex, goalRoom, grid);
+
+                        //If CheckCell returns a path, that means it finished the path, just like normal
+                        if(path != null)
+                        {
+                            return path;
+                        }
+
+                        //Get the node that comes after the staircase in the direction that the staircase faces and check
+                        //This enforces landings for spiral staircases and forces the stairs to face a valid direction for the player to go
+                        //Set the parent as the stairwell node so we don't lose the stairs
+                        //AStarNode afterNode = new AStarNode(afterIndex, nextNode.g + 1, FindH(afterIndex, goalIndex), nextNode, CellTypes.HALLWAY);
+
+                        //open.Push(afterNode);
+                    }
+                    else
+                    {
+                        //Push the cell to the open list with its corresponding values for g and h, set current node as its parent
+                        open.Push(nextNode);
+                    }
                 }
             }
         }
@@ -235,7 +287,7 @@ public class AStar : MonoBehaviour
     }
 
     //Return the direction the current path just came from, prevent overlap by going backwards on staircases
-    static Directions DirectionCameFrom(Vector3Int parentIndices, Vector3Int currentIndices)
+    static Vector3Int DirectionCameFrom(Vector3Int parentIndices, Vector3Int currentIndices)
     {
         if(parentIndices != null && currentIndices != null)
         {
@@ -243,28 +295,28 @@ public class AStar : MonoBehaviour
 
             if (diff.z > 0)
             {
-                return Directions.NORTH;
+                return constSouth;
             }
 
             if (diff.z < 0)
             {
-                return Directions.SOUTH;
+                return constNorth;
             }
 
             if (diff.x > 0)
             {
-                return Directions.EAST;
+                return constWest;
             }
 
             if (diff.x < 0)
             {
-                return Directions.WEST;
+                return constEast;
             }
         }
 
         //If x and y are equal, we are at the same node as the last step, haven't moved
         //Only other way to get here is if one passed Vector3Int is null
         //Should only happen for the first node
-        return Directions.UNDEFINED;
+        return constUndefined;
     }
 }
