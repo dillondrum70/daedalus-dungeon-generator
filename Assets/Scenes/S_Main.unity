@@ -396,13 +396,13 @@ MonoBehaviour:
   cellCountX: 20
   cellCountY: 10
   cellCountZ: 20
-  room: {fileID: 8132880929042404955, guid: 2258075479def3b49b6ed56f2b57eec5, type: 3}
+  room: {fileID: 6965430385258804789, guid: 690f69c3938c79647bbd02ad226599fd, type: 3}
   roomParent: {fileID: 1240957116}
   numRandomRooms: 10
   maxSize: {x: 3, y: 1, z: 3}
   minSize: {x: 1, y: 1, z: 1}
-  hallPrefab: {fileID: 1466790304378640822, guid: 021d8602b31a7b242835de6b2ac14aa9, type: 3}
-  stairsPrefab: {fileID: 1466790304378640822, guid: 1884615616295f7469b33e0594205419, type: 3}
-  stairSpacePrefab: {fileID: 1466790304378640822, guid: c841f6e0556b9fa41be9eb3d000ca533, type: 3}
+  hallPrefab: {fileID: 6965430385258804789, guid: 0f84e41cdaaa05e49b7a3032209405f2, type: 3}
+  stairsPrefab: {fileID: 6965430385258804789, guid: 953aa0c076d8e11408a5456f630ba64c, type: 3}
+  stairSpacePrefab: {fileID: 6965430385258804789, guid: e953a451bc1cd5b4188b827bbfeb8520, type: 3}
   extraHallwaysFactor: 0.3
   test: {x: 5, y: 5, z: 5}

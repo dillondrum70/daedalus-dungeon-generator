@@ -125,7 +125,7 @@ public class DungeonGenerator : MonoBehaviour
 
         grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
 
-        Generate();
+        //Generate();
     }
 
     private void Update()
@@ -288,7 +288,7 @@ public class DungeonGenerator : MonoBehaviour
                             grid.GetCell(currentIndices).cellType = CellTypes.ROOM;
                             newRoom.cells.Add(grid.GetCell(currentIndices));
 
-                            Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent.transform).transform;
+                           Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent.transform).transform;
 
                             trans.localScale = CellDimensions;
                         }
@@ -423,6 +423,8 @@ public class DungeonGenerator : MonoBehaviour
         {
             foreach(Room room in pair.Value)
             {
+                float realtime = Time.realtimeSinceStartup;
+
                 //find closest room cell in the goal room and make that our A* target
                 Vector3 goal = room.cells[0].center;
                 for(int i = 1; i < room.cells.Count; i++)
@@ -433,6 +435,16 @@ public class DungeonGenerator : MonoBehaviour
                     }
                 }
 
+                //Find closest room to start from
+                Vector3 start = pair.Key.cells[0].center;
+                for (int i = 1; i < pair.Key.cells.Count; i++)
+                {
+                    if ((start - goal).sqrMagnitude > (pair.Key.cells[i].center - goal).sqrMagnitude)
+                    {
+                        start = pair.Key.cells[i].center;
+                    }
+                }
+
                 Vector3Int startIndices = grid.GetGridIndices(pair.Key.center);
                 Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(goal), grid);
 
@@ -440,17 +452,18 @@ public class DungeonGenerator : MonoBehaviour
                 if(path != null)
                 {
                     //Store the last Y value so we know when we've added a stairwell
-                    int lastY = startIndices.y;
+                    Vector3Int lastIndices = startIndices;
                     foreach (AStarNode node in path)
                     {
                         //Get center position of unit
                         Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
 
-                        if (node.indices.y < lastY) //Stairwell down
+                        if (node.indices.y < lastIndices.y) //Stairwell down
                         {
                             //Stair cell
                             grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
-                            Transform trans = Instantiate(stairsPrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stairwell
+
+                            Transform trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), roomParent.transform).transform; //Spawn stairwell
                             trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
 
                             //Stairspace cell
@@ -460,7 +473,7 @@ public class DungeonGenerator : MonoBehaviour
                             trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stairspace
                             trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                         }
-                        else if(node.indices.y > lastY) //Stairwell up
+                        else if(node.indices.y > lastIndices.y) //Stairwell up
                         {
                             //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
                             grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stair space
@@ -470,7 +483,7 @@ public class DungeonGenerator : MonoBehaviour
                             //Stair cell
                             pos -= new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
                             grid.GetCell(new Vector3(node.indices.x, node.indices.y - 1, node.indices.z)).cellType = CellTypes.STAIRS;  //Mark as stairs
-                            trans = Instantiate(stairsPrefab, pos, Quaternion.identity, roomParent.transform).transform; //Spawn stair
+                            trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), roomParent.transform).transform; //Spawn stair
                             trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                         }
                         else //Hallway
@@ -486,15 +499,48 @@ public class DungeonGenerator : MonoBehaviour
                         }
 
                         //Update last y with this node's y value
-                        lastY = node.indices.y;
+                        lastIndices = node.indices;
                     }
                 }
                 else
                 {
                     Debug.LogError("A Star Failed");
                 }
+
+                //Log the time this step took
+                Debug.Log("Path Time: " + (Time.realtimeSinceStartup - realtime));
             }    
         }
+    }
+
+    //return the yaw rotation of a staircase based on the positions of the stairs and the last cell
+    private Quaternion GetStairRotation(Vector3Int lastIndices, Vector3Int currentIndices)
+    {
+        Vector3Int diff = currentIndices - lastIndices;
+
+        float rot = 0f; //stairs face forward
+
+        if (diff.z < 0) //stairs face backward
+        {
+            rot = 180f;
+        }
+        else if(diff.x > 0) //stairs face right
+        {
+            rot = 90f;
+        }
+        else if(diff.x < 0) //stairs face left
+        {
+            rot = 270f;
+        }
+
+        //If stairs are going down, we flip the angle, i.e. when moving forward UP stairs, rotation is 0
+        //but when going forward DOWN stairs we need to flip them to 180 degrees
+        if (diff.y < 0)  
+        {
+            rot += 180;
+        }
+
+        return Quaternion.Euler(new Vector3(0, rot, 0));
     }
 
     private void OnDrawGizmos()
@@ -535,13 +581,15 @@ public class DungeonGenerator : MonoBehaviour
             //        Gizmos.DrawLine(edge.pointA, edge.pointB);
             //    }
             //}
-
-            foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
+            if(roomMap.Count > 0)
             {
-                Gizmos.color = Color.green;
-                foreach (Room room in pair.Value)
+                foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
                 {
-                    Gizmos.DrawLine(pair.Key.center, room.center);
+                    Gizmos.color = Color.green;
+                    foreach (Room room in pair.Value)
+                    {
+                        Gizmos.DrawLine(pair.Key.center, room.center);
+                    }
                 }
             }
 
