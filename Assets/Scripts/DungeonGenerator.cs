@@ -21,7 +21,7 @@ public class Room : IEquatable<Room>
     {
         Vector3 avgPos = Vector3.zero;
 
-        foreach(Cell c in cells)
+        foreach (Cell c in cells)
         {
             avgPos += c.center;
         }
@@ -29,6 +29,20 @@ public class Room : IEquatable<Room>
         avgPos = avgPos / cells.Count;
 
         center = avgPos;
+    }
+
+    //If one of the cells in the room is next to the passed index (including above or below), return true
+    public bool HasAdjacentCell(Vector3Int index)
+    {
+        foreach (Cell c in cells)
+        {
+            if ((c.index - index).sqrMagnitude == 1)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     //If one of the cells in the room is next to the passed index (not above or below), return true
@@ -43,6 +57,25 @@ public class Room : IEquatable<Room>
         }
 
         return false;
+    }
+
+    
+
+    //Returns the indices of the closest room to the goal index that has an open side so A star can perform
+    public Vector3Int ClosestValidStartRoom(Vector3 goalIndex, Grid grid)
+    {
+        //Initialize closes to to far away, invalid value
+        Vector3Int closest = new Vector3Int((int)grid.GridDimensions.x, (int)grid.GridDimensions.y, (int)grid.GridDimensions.z) * 3;
+        for(int i = 1; i < cells.Count; i++)
+        {
+            if(cells[i].HasFreeLevelAdjacentCell(grid) &&                                      //If has free adjacent space to the N, S, E, or W 
+               (closest - goalIndex).sqrMagnitude > (cells[i].index - goalIndex).sqrMagnitude) //and closer to goal
+            {
+                closest = cells[i].index;
+            }
+        }
+
+        return closest;
     }
 
     public bool Equals(Room other)
@@ -460,74 +493,82 @@ public class DungeonGenerator : MonoBehaviour
                 //    }
                 //}
 
-                Vector3Int startIndices = grid.GetGridIndices(pair.Key.center);
-                Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(room.center), room, grid);
+                Vector3Int startIndices = pair.Key.ClosestValidStartRoom(room.center, grid);
 
-                Transform pathParent = new GameObject().transform;
-                pathParent.parent = roomParent.transform;
-
-                //path might return null if A* failed
-                if(path != null)
+                if(grid.IsValidCell(startIndices))
                 {
-                    //Store the last Y value so we know when we've added a stairwell
-                    Vector3Int lastIndices = startIndices;
-                    foreach (AStarNode node in path)
+                    Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(room.center), room, grid);
+
+                    Transform pathParent = new GameObject().transform;
+                    pathParent.parent = roomParent.transform;
+
+                    //path might return null if A* failed
+                    if (path != null)
                     {
-                        //Get center position of unit
-                        Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
-
-                        if (node.indices.y < lastIndices.y) //Stairwell down
+                        //Store the last Y value so we know when we've added a stairwell
+                        Vector3Int lastIndices = startIndices;
+                        foreach (AStarNode node in path)
                         {
-                            //Stair cell
-                            grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
+                            //Get center position of unit
+                            Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
 
-                            Transform trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), pathParent).transform; //Spawn stairwell
-                            trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
+                            if (node.indices.y < lastIndices.y) //Stairwell down
+                            {
+                                //Stair cell
+                                grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
 
-                            //Stairspace cell
-                            pos += new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
-                            //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
-                            grid.GetCell(new Vector3(node.indices.x, node.indices.y + 1, node.indices.z)).cellType = CellTypes.STAIRSPACE;
-                            trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, pathParent).transform; //Spawn stairspace
-                            trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
+                                Transform trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), pathParent).transform; //Spawn stairwell
+                                trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
+
+                                //Stairspace cell
+                                pos += new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
+                                                                      //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
+                                grid.GetCell(new Vector3(node.indices.x, node.indices.y + 1, node.indices.z)).cellType = CellTypes.STAIRSPACE;
+                                trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, pathParent).transform; //Spawn stairspace
+                                trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
+                            }
+                            else if (node.indices.y > lastIndices.y) //Stairwell up
+                            {
+                                //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
+                                grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stair space
+                                Transform trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, pathParent).transform; //Spawn stair space
+                                trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
+
+                                //Stair cell
+                                pos -= new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
+                                grid.GetCell(new Vector3(node.indices.x, node.indices.y - 1, node.indices.z)).cellType = CellTypes.STAIRS;  //Mark as stairs
+                                trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), pathParent).transform; //Spawn stair
+                                trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
+                            }
+                            else //Hallway
+                            {
+                                //Mark grid cell as hallway
+                                grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
+
+                                //Spawn hallway
+                                Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, pathParent).transform;
+
+                                //Scale the unit to fit the grid cell
+                                trans.localScale = CellDimensions;
+                            }
+
+                            //Update last y with this node's y value
+                            lastIndices = node.indices;
                         }
-                        else if(node.indices.y > lastIndices.y) //Stairwell up
-                        {
-                            //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
-                            grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stair space
-                            Transform trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, pathParent).transform; //Spawn stair space
-                            trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
-
-                            //Stair cell
-                            pos -= new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
-                            grid.GetCell(new Vector3(node.indices.x, node.indices.y - 1, node.indices.z)).cellType = CellTypes.STAIRS;  //Mark as stairs
-                            trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), pathParent).transform; //Spawn stair
-                            trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
-                        }
-                        else //Hallway
-                        {
-                            //Mark grid cell as hallway
-                            grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
-
-                            //Spawn hallway
-                            Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, pathParent).transform;
-
-                            //Scale the unit to fit the grid cell
-                            trans.localScale = CellDimensions;
-                        }
-
-                        //Update last y with this node's y value
-                        lastIndices = node.indices;
                     }
+                    else
+                    {
+                        Debug.LogError("A-Star Path Failed");
+                    }
+
+                    //Log the time this step took
+                    Debug.Log("Path Time: " + (Time.realtimeSinceStartup - realtime));
                 }
                 else
                 {
-                    Debug.LogError("A Star Failed");
+                    Debug.LogError("Valid starting cell could not be found");
                 }
-
-                //Log the time this step took
-                Debug.Log("Path Time: " + (Time.realtimeSinceStartup - realtime));
-            }    
+            }
         }
     }
 

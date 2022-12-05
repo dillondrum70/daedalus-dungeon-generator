@@ -18,6 +18,32 @@ public struct Cell
 
     public CellTypes cellType; //Specifies that this space is a room space
 
+    //Returns true if there is one free adjacent cell on the same y level as the passed cell
+    public bool HasFreeLevelAdjacentCell(Grid grid)
+    {
+        //Check north
+        if (grid.IsValidCell(index + Vector3Int.forward) && grid.GetCell(index + Vector3Int.forward).cellType == CellTypes.NONE)
+        {
+            return true;
+        }
+        //South
+        if (grid.IsValidCell(index - Vector3Int.forward) && grid.GetCell(index - Vector3Int.forward).cellType == CellTypes.NONE)
+        {
+            return true;
+        }
+        //East
+        if (grid.IsValidCell(index + Vector3Int.right) && grid.GetCell(index + Vector3Int.right).cellType == CellTypes.NONE)
+        {
+            return true;
+        }
+        //West
+        if (grid.IsValidCell(index - Vector3Int.right) && grid.GetCell(index - Vector3Int.right).cellType == CellTypes.NONE)
+        {
+            return true;
+        }
+        return false;
+    }
+
     public void DrawGizmo()
     {
         Gizmos.DrawWireCube(center, sizes);
