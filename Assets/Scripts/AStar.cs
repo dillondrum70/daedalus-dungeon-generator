@@ -135,20 +135,20 @@ public class AStar : MonoBehaviour
                     }
                 }
 
-                if(lastDirection != constWest)
+                if (lastDirection != constEast)
                 {
-                    Vector3Int west = new Vector3Int(current.indices.x + 1, current.indices.y + y, current.indices.z);
-                    result = CheckCell(current, west, goalIndex, goalRoom, grid);
+                    Vector3Int east = new Vector3Int(current.indices.x - 1, current.indices.y + y, current.indices.z);
+                    result = CheckCell(current, east, goalIndex, goalRoom, grid);
                     if (result != null)
                     {
                         return result;
                     }
                 }
 
-                if(lastDirection != constEast)
+                if (lastDirection != constWest)
                 {
-                    Vector3Int east = new Vector3Int(current.indices.x - 1, current.indices.y + y, current.indices.z);
-                    result = CheckCell(current, east, goalIndex, goalRoom, grid);
+                    Vector3Int west = new Vector3Int(current.indices.x + 1, current.indices.y + y, current.indices.z);
+                    result = CheckCell(current, west, goalIndex, goalRoom, grid);
                     if (result != null)
                     {
                         return result;
@@ -178,15 +178,17 @@ public class AStar : MonoBehaviour
         {
             AStarNode nextNode = new AStarNode(nextIndex, current.g + 1, FindH(nextIndex, goalIndex), current);
 
-            //If nextIndex is the goal index
-            if (nextIndex == goalIndex)
+             
+            if (nextIndex == goalIndex && //If nextIndex is the goal index
+                (current.indices.y == nextIndex.y || //and node is not a staircase
+                DirectionCameFrom(current.parent.indices, current.indices) == DirectionCameFrom(current.indices, nextIndex)))//or the staircase faces the room
             {
                 //End
                 return TraceBackPath(current);
             }
 
-            //if nextIndex is adjacent to one of the cells in the room
-            if (goalRoom.HasLevelAdjacentCell(nextIndex))
+            //if nextIndex is adjacent to one of the cells in the room and the next node is not a staircase
+            if (goalRoom.HasLevelAdjacentCell(nextIndex) && current.indices.y == nextIndex.y)
             {
                 return TraceBackPath(nextNode);
             }
@@ -194,6 +196,7 @@ public class AStar : MonoBehaviour
             //Check that the candidate cell is empty and not already part of our path (don't want to write over previous hallways/stairs
             if (grid.IsCellEmpty(nextIndex) && !IndexInPath(nextIndex, current))
             {
+
                 //Skip this cell if open or closed has a node with a lower f value, that means this one is obsolete
                 //Make sure to null check the results before continuing in case a node does not exist with those indices
                 AStarNode openNode = open[nextIndex];
@@ -207,6 +210,7 @@ public class AStar : MonoBehaviour
 
                         //We can assume this index is valid since we know both current.indices and nextIndex are valid
                         nextNode.extraStairIndex = (nextIndex.y < current.indices.y ? nextIndex + Vector3Int.up : nextIndex - Vector3Int.up);
+                        nextNode.nodeType = CellTypes.STAIRS;
 
                         //If cell for staircase isn't empty, then staircase is invalid
                         if(!grid.IsCellEmpty(nextNode.extraStairIndex))
