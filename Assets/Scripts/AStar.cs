@@ -67,7 +67,6 @@ public class AStarNode : IComparable<AStarNode>
     }
 }
 
-
 public class AStar : MonoBehaviour
 {
     public const float sqrt2 = 1.414f;

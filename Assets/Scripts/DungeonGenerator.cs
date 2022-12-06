@@ -168,6 +168,11 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] GameObject hallPrefab;
     [SerializeField] GameObject stairsPrefab;
     [SerializeField] GameObject stairSpacePrefab;
+    [SerializeField] GameObject wallPrefab;
+    [SerializeField] GameObject doorwayPrefab;
+
+    [Header("Other")]
+    [SerializeField] float percentEnableLights = .2f; //percentage [0, 1] of lights on walls enabled
 
     [SerializeField] float extraHallwaysFactor = .5f;   //Adds (<extra> * leftover room count) number of rooms after minimum spanning tree determined
 
@@ -197,7 +202,7 @@ public class DungeonGenerator : MonoBehaviour
 
     private void Update()
     {
-        if(Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             Clear();
             Generate();
@@ -211,7 +216,7 @@ public class DungeonGenerator : MonoBehaviour
         rooms.Clear();
         totalEdges.Clear();
         roomMap.Clear();
-        foreach(Transform child in roomParent.transform)
+        foreach (Transform child in roomParent.transform)
         {
             Destroy(child.gameObject);
         }
@@ -275,6 +280,8 @@ public class DungeonGenerator : MonoBehaviour
 
         CarveHallways();
 
+        PlaceWalls();
+
         Debug.Log("Algorithm Time: " + (float)(Time.realtimeSinceStartupAsDouble - realtime) + " seconds");
     }
 
@@ -321,11 +328,11 @@ public class DungeonGenerator : MonoBehaviour
             //}
             //else
             //{
-                randPos = new Vector3(
-                    CellDimensions.x * UnityEngine.Random.Range(0, GridDimensions.x),
-                    CellDimensions.y * UnityEngine.Random.Range(0, GridDimensions.y),
-                    CellDimensions.z * UnityEngine.Random.Range(0, GridDimensions.z)
-                );
+            randPos = new Vector3(
+                CellDimensions.x * UnityEngine.Random.Range(0, GridDimensions.x),
+                CellDimensions.y * UnityEngine.Random.Range(0, GridDimensions.y),
+                CellDimensions.z * UnityEngine.Random.Range(0, GridDimensions.z)
+            );
             //}
 
             Vector3 gridCenter = grid.GetCenter(randPos);
@@ -349,7 +356,7 @@ public class DungeonGenerator : MonoBehaviour
                             Vector3Int currentIndices = gridIndices + new Vector3Int(j, k, l);
 
                             //Check that placing a room here is a valid action
-                            if(!grid.CanPlaceRoom(currentIndices, newRoom))
+                            if (!grid.CanPlaceRoom(currentIndices, newRoom))
                             {
                                 continue;
                             }
@@ -359,7 +366,7 @@ public class DungeonGenerator : MonoBehaviour
                             grid.GetCell(currentIndices).cellType = CellTypes.ROOM;
                             newRoom.cells.Add(grid.GetCell(currentIndices));
 
-                           Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent.transform).transform;
+                            Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent.transform).transform;
 
                             trans.localScale = CellDimensions;
                         }
@@ -386,7 +393,7 @@ public class DungeonGenerator : MonoBehaviour
         //tetrahedrons.Add(superTetrahedron);
 
         List<Vector3> pointList = new List<Vector3>();
-        foreach(Room room in rooms)
+        foreach (Room room in rooms)
         {
             pointList.Add(room.center);
         }
@@ -396,17 +403,17 @@ public class DungeonGenerator : MonoBehaviour
 
         //Count up each edge in tetrahedralization once and add a second with the points reversed so we have an adjacency list of an
         //undirected graph
-        foreach(Tetrahedron tet in tetrahedrons)
+        foreach (Tetrahedron tet in tetrahedrons)
         {
             Edge[] edges = tet.GetEdges();
 
-            foreach(Edge e in edges)
+            foreach (Edge e in edges)
             {
                 List<Edge> list;
                 bool added = false, contains = false;
 
                 //Add the edge to the dictionary if it isn't in there already
-                if(totalEdges.TryGetValue(e.pointA, out list))
+                if (totalEdges.TryGetValue(e.pointA, out list))
                 {
                     if (!list.Contains(e))
                     {
@@ -443,7 +450,7 @@ public class DungeonGenerator : MonoBehaviour
         //Add random number of edges from excluded to minSpanTree
         int numHalls = (int)(extraHallwaysFactor * excluded.Count);
 
-        for(int i = 0; i < numHalls; i++)
+        for (int i = 0; i < numHalls; i++)
         {
             int hallIndex = UnityEngine.Random.Range(0, excluded.Count - 1);
 
@@ -490,9 +497,9 @@ public class DungeonGenerator : MonoBehaviour
 
     void CarveHallways()
     {
-        foreach(KeyValuePair<Room, List<Room>> pair in roomMap)
+        foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
         {
-            foreach(Room room in pair.Value)
+            foreach (Room room in pair.Value)
             {
                 float realtime = Time.realtimeSinceStartup;
 
@@ -518,7 +525,7 @@ public class DungeonGenerator : MonoBehaviour
 
                 Vector3Int startIndices = pair.Key.ClosestValidStartRoom(room.center, grid);
 
-                if(grid.IsValidCell(startIndices))
+                if (grid.IsValidCell(startIndices))
                 {
                     Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(room.center), room, grid);
 
@@ -546,22 +553,24 @@ public class DungeonGenerator : MonoBehaviour
 
                                 //Stairspace cell
                                 pos += new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
-                                                                      //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
-                                grid.GetCell(new Vector3(node.indices.x, node.indices.y + 1, node.indices.z)).cellType = CellTypes.STAIRSPACE;
-                                trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, currentPathParent).transform; //Spawn stairspace
+                                Vector3Int spaceIndex = new Vector3Int(node.indices.x, node.indices.y + 1, node.indices.z);
+                                //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
+                                grid.GetCell(spaceIndex).cellType = CellTypes.STAIRSPACE;
+                                trans = Instantiate(stairSpacePrefab, pos, GetStairRotation(lastIndices, spaceIndex), currentPathParent).transform; //Spawn stairspace
                                 trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                             }
                             else if (node.indices.y > lastIndices.y) //Stairwell up
                             {
                                 //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
                                 grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stair space
-                                Transform trans = Instantiate(stairSpacePrefab, pos, Quaternion.identity, currentPathParent).transform; //Spawn stair space
+                                Transform trans = Instantiate(stairSpacePrefab, pos, GetStairRotation(lastIndices, node.indices), currentPathParent).transform; //Spawn stair space
                                 trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
 
                                 //Stair cell
                                 pos -= new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
-                                grid.GetCell(new Vector3(node.indices.x, node.indices.y - 1, node.indices.z)).cellType = CellTypes.STAIRS;  //Mark as stairs
-                                trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), currentPathParent).transform; //Spawn stair
+                                Vector3Int stairIndex = new Vector3Int(node.indices.x, node.indices.y - 1, node.indices.z);
+                                grid.GetCell(stairIndex).cellType = CellTypes.STAIRS;  //Mark as stairs
+                                trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, stairIndex), currentPathParent).transform; //Spawn stair
                                 trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                             }
                             else //Hallway
@@ -596,6 +605,356 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    private void PlaceWalls()
+    {
+        //Do a pass of all cells and determine what types of walls to add 
+        for (int x = 0; x < cellCountX; x++)
+        {
+            for (int y = 0; y < cellCountY; y++)
+            {
+                for (int z = 0; z < cellCountZ; z++)
+                {
+                    Vector3Int currentIndex = new Vector3Int(x, y, z);
+                    //Check this node's cell type to determine what walls should be added
+                    CellTypes type = grid.GetCell(currentIndex).cellType;
+
+                    switch(type)
+                    {
+                        case CellTypes.ROOM:
+                            //Only check north and east, the previous node will have handled the checks for south and west
+                            RoomWall(currentIndex, currentIndex + AStar.constNorth);
+                            RoomWall(currentIndex, currentIndex + AStar.constEast);
+
+                            //If on grid bounds, there is no previous node to do this check, needs to be done by this node
+                            if(currentIndex.z == 0)
+                            {
+                                RoomWall(currentIndex, currentIndex + AStar.constSouth);
+                            }
+                            if(currentIndex.x == 0)
+                            {
+                                RoomWall(currentIndex, currentIndex + AStar.constWest);
+                            }
+                            break;
+
+                        case CellTypes.HALLWAY:
+                            HallWall(currentIndex, currentIndex + AStar.constNorth);
+                            HallWall(currentIndex, currentIndex + AStar.constEast);
+
+                            if (currentIndex.z == 0)
+                            {
+                                HallWall(currentIndex, currentIndex + AStar.constSouth);
+                            }
+                            if (currentIndex.x == 0)
+                            {
+                                HallWall(currentIndex, currentIndex + AStar.constWest);
+                            }
+                            break;
+                        case CellTypes.STAIRSPACE:
+                            StairSpaceWall(currentIndex, currentIndex + AStar.constNorth);
+                            StairSpaceWall(currentIndex, currentIndex + AStar.constEast);
+
+                            if (currentIndex.z == 0)
+                            {
+                                StairSpaceWall(currentIndex, currentIndex + AStar.constSouth);
+                            }
+                            if (currentIndex.x == 0)
+                            {
+                                StairSpaceWall(currentIndex, currentIndex + AStar.constWest);
+                            }
+                            break;
+                        case CellTypes.STAIRS:
+                            //StairWall(currentIndex, currentIndex + AStar.constNorth);
+                            //StairWall(currentIndex, currentIndex + AStar.constEast);
+
+                            //if (currentIndex.z == 0)
+                            //{
+                            //    StairWall(currentIndex, currentIndex + AStar.constSouth);
+                            //}
+                            //if (currentIndex.x == 0)
+                            //{
+                            //    StairWall(currentIndex, currentIndex + AStar.constWest);
+                            //}
+                            break;
+                        case CellTypes.NONE:
+                            break;
+                    }
+                    
+                }
+            }
+        }
+    }
+
+    private void RoomWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
+    {
+        if(grid.IsValidCell(adjacentIndex))
+        {
+            Cell adjacentCell = grid.GetCell(adjacentIndex);
+
+            GameObject spawnObject = null;
+
+            switch(adjacentCell.cellType)
+            {
+                //Doorway
+                case CellTypes.HALLWAY:
+                    spawnObject = doorwayPrefab;
+                    break;
+
+                //Doorway if facing the room
+                case CellTypes.STAIRS:
+                    if (adjacentCell.faceDirection == Cell.DirectionCameFrom(adjacentIndex, currentIndex))
+                    {
+                        spawnObject = doorwayPrefab;
+                    }
+                    break;
+
+                //Wall
+                case CellTypes.NONE:
+                    spawnObject = wallPrefab;
+                    break;
+
+                //Put up walls unless the stair space is facing the room
+                case CellTypes.STAIRSPACE:
+                    if (adjacentCell.faceDirection != Cell.DirectionCameFrom(adjacentIndex, currentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    else
+                    {
+                        spawnObject = doorwayPrefab;
+                    }
+                    break;
+
+                //Do nothing
+                case CellTypes.ROOM:
+                    //No walls between rooms
+                default:
+                    
+                    break;
+            }
+
+            if(spawnObject != null)
+            {
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+                trans.localScale = CellDimensions;
+
+                if(UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+                {
+                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                }
+            }
+        }
+        else //If next index is not valid, it is empty and we need a wall
+        {
+            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+            trans.localScale = CellDimensions;
+
+            if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+            {
+                trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+            }
+        }
+    }
+
+    private void HallWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
+    {
+        if (grid.IsValidCell(adjacentIndex))
+        {
+            Cell adjacentCell = grid.GetCell(adjacentIndex);
+
+            GameObject spawnObject = null;
+
+            switch (adjacentCell.cellType)
+            {
+                //Wall
+                case CellTypes.NONE:
+                    spawnObject = wallPrefab;
+                    break;
+
+                //Room
+                case CellTypes.ROOM:
+                    spawnObject = doorwayPrefab;
+                    break;
+
+                //Stairs and stairspace
+                case CellTypes.STAIRS:
+                    //if (adjacentCell.faceDirection == Cell.DirectionCameFrom(adjacentIndex, currentIndex))
+                    //{
+                    //    spawnObject = doorwayPrefab;
+                    //}
+                    //Otherwise, the stairs come with a wall on all other sides so it doesn't matter
+                    break;
+
+                case CellTypes.STAIRSPACE:
+                    //Check the stairs below the stair space for direction, the stairs must be facing away  (therefore leading up the the hallway)
+                    if (grid.GetCell(adjacentIndex + Vector3Int.down).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    break;
+
+                //Do nothing
+                case CellTypes.HALLWAY:
+                default:
+
+                    break;
+            }
+
+            if (spawnObject != null)
+            {
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+                trans.localScale = CellDimensions;
+
+                if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+                {
+                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                }
+            }
+        }
+        else //If next index is not valid, it is empty and we need a wall
+        {
+            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+            trans.localScale = CellDimensions;
+
+            if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+            {
+                trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+            }
+        }
+    }
+
+    private void StairSpaceWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
+    {
+        if (grid.IsValidCell(adjacentIndex))
+        {
+            Cell adjacentCell = grid.GetCell(adjacentIndex);
+
+            GameObject spawnObject = null;
+
+            switch (adjacentCell.cellType)
+            {
+                //Wall
+                case CellTypes.NONE:
+                    spawnObject = wallPrefab;
+                    break;
+
+                //Check if staircase faces this cell and add wall if false, for rooms, add doorway if true
+                case CellTypes.ROOM:
+                    if (grid.GetCell(currentIndex + Vector3Int.down).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    else
+                    {
+                        spawnObject = doorwayPrefab;
+                    }
+                    break;
+
+
+                case CellTypes.HALLWAY:
+                    //Get stairs beneath the stair space to find if the stairs face away from the hallway (therefore leading up the the hallway)
+                    if (grid.GetCell(currentIndex + Vector3Int.down).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    break;
+
+                //Do nothing
+                case CellTypes.STAIRS:
+                case CellTypes.STAIRSPACE:
+                default:
+
+                    break;
+            }
+
+            if (spawnObject != null)
+            {
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+                trans.localScale = CellDimensions;
+
+                if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+                {
+                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                }
+            }
+        }
+        else //If next index is not valid, it is empty and we need a wall
+        {
+            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+            trans.localScale = CellDimensions;
+
+            if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+            {
+                trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+            }
+        }
+    }
+
+    private void StairWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
+    {
+        if (grid.IsValidCell(adjacentIndex))
+        {
+            Cell adjacentCell = grid.GetCell(adjacentIndex);
+
+            GameObject spawnObject = null;
+
+            switch (adjacentCell.cellType)
+            {
+                //Wall
+                case CellTypes.NONE:
+                    spawnObject = wallPrefab;
+                    break;
+
+                //Check if staircase faces this cell and add wall if false, for rooms, add doorway if true
+                case CellTypes.ROOM:
+                    if (adjacentCell.faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    else
+                    {
+                        spawnObject = doorwayPrefab;
+                    }
+                    break;
+
+
+                case CellTypes.HALLWAY:
+                    if (adjacentCell.faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    break;
+
+                //Do nothing
+                case CellTypes.STAIRS:
+                case CellTypes.STAIRSPACE:
+                default:
+
+                    break;
+            }
+
+            if (spawnObject != null)
+            {
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+                trans.localScale = CellDimensions;
+
+                if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+                {
+                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                }
+            }
+        }
+        else //If next index is not valid, it is empty and we need a wall
+        {
+            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+            trans.localScale = CellDimensions;
+
+            if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+            {
+                trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+            }
+        }
+    }
+
     //return the yaw rotation of a staircase based on the positions of the stairs and the last cell
     private Quaternion GetStairRotation(Vector3Int lastIndices, Vector3Int currentIndices)
     {
@@ -606,14 +965,21 @@ public class DungeonGenerator : MonoBehaviour
         if (diff.z < 0) //stairs face backward
         {
             rot = 180f;
+            grid.GetCell(currentIndices).faceDirection = Directions.SOUTH;
         }
         else if(diff.x > 0) //stairs face right
         {
             rot = 90f;
+            grid.GetCell(currentIndices).faceDirection = Directions.EAST;
         }
         else if(diff.x < 0) //stairs face left
         {
             rot = 270f;
+            grid.GetCell(currentIndices).faceDirection = Directions.WEST;
+        }
+        else
+        {
+            grid.GetCell(currentIndices).faceDirection = Directions.NORTH;
         }
 
         //If stairs are going down, we flip the angle, i.e. when moving forward UP stairs, rotation is 0
@@ -621,6 +987,29 @@ public class DungeonGenerator : MonoBehaviour
         if (diff.y < 0)  
         {
             rot += 180;
+        }
+
+        return Quaternion.Euler(new Vector3(0, rot, 0));
+    }
+
+    //Return wall rotation needed to place a wall between the two indices
+    private Quaternion GetWallRotation(Vector3Int lastIndices, Vector3Int currentIndices)
+    {
+        Vector3Int diff = currentIndices - lastIndices;
+
+        float rot = 0f; //stairs face forward
+
+        if (diff.z < 0) //stairs face backward
+        {
+            rot = 180f;
+        }
+        else if (diff.x > 0) //stairs face right
+        {
+            rot = 90f;
+        }
+        else if (diff.x < 0) //stairs face left
+        {
+            rot = 270f;
         }
 
         return Quaternion.Euler(new Vector3(0, rot, 0));

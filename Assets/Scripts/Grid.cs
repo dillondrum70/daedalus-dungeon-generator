@@ -17,6 +17,7 @@ public struct Cell
     public Vector3Int index;
 
     public CellTypes cellType; //Specifies that this space is a room space
+    public Directions faceDirection; //Only matters for stairs
 
     //Returns true if there is one free adjacent cell on the same y level as the passed cell
     public bool HasFreeLevelAdjacentCell(Grid grid)
@@ -42,6 +43,39 @@ public struct Cell
             return true;
         }
         return false;
+    }
+
+    public static Directions DirectionCameFrom(Vector3Int parentIndices, Vector3Int currentIndices)
+    {
+        if (parentIndices != null && currentIndices != null)
+        {
+            Vector3Int diff = currentIndices - parentIndices;
+
+            if (diff.z > 0)
+            {
+                return Directions.SOUTH;
+            }
+
+            if (diff.z < 0)
+            {
+                return Directions.NORTH;
+            }
+
+            if (diff.x > 0)
+            {
+                return Directions.WEST;
+            }
+
+            if (diff.x < 0)
+            {
+                return Directions.EAST;
+            }
+        }
+
+        //If x and y are equal, we are at the same node as the last step, haven't moved
+        //Only other way to get here is if one passed Vector3Int is null
+        //Should only happen for the first node
+        return Directions.UNDEFINED;
     }
 
     public void DrawGizmo()
@@ -80,9 +114,9 @@ public class Grid : MonoBehaviour
     {
         return ref cells[x, y, z];
     }
-    public ref Cell GetCell(Vector3 indices)
+    public ref Cell GetCell(Vector3Int indices)
     {
-        return ref cells[(int)indices.x, (int)indices.y, (int)indices.z];
+        return ref cells[indices.x, indices.y, indices.z];
     }
 
     public void InitGrid(Vector3 cellDimensions, Vector3 cellCount)
