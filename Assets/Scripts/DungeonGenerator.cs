@@ -672,19 +672,21 @@ public class DungeonGenerator : MonoBehaviour
                             }
                             break;
                         case CellTypes.STAIRS:
-                            //StairWall(currentIndex, currentIndex + AStar.constNorth);
-                            //StairWall(currentIndex, currentIndex + AStar.constEast);
+                            StairWall(currentIndex, currentIndex + AStar.constNorth);
+                            StairWall(currentIndex, currentIndex + AStar.constEast);
 
-                            //if (currentIndex.z == 0)
-                            //{
-                            //    StairWall(currentIndex, currentIndex + AStar.constSouth);
-                            //}
-                            //if (currentIndex.x == 0)
-                            //{
-                            //    StairWall(currentIndex, currentIndex + AStar.constWest);
-                            //}
+                            if (currentIndex.z == 0)
+                            {
+                                StairWall(currentIndex, currentIndex + AStar.constSouth);
+                            }
+                            if (currentIndex.x == 0)
+                            {
+                                StairWall(currentIndex, currentIndex + AStar.constWest);
+                            }
                             break;
                         case CellTypes.NONE:
+                            EmptyCellWall(currentIndex, currentIndex + AStar.constNorth);
+                            EmptyCellWall(currentIndex, currentIndex + AStar.constEast);
                             break;
                     }
                     
@@ -710,7 +712,11 @@ public class DungeonGenerator : MonoBehaviour
 
                 //Doorway if facing the room
                 case CellTypes.STAIRS:
-                    if (adjacentCell.faceDirection == Cell.DirectionCameFrom(adjacentIndex, currentIndex))
+                    if (adjacentCell.faceDirection != Cell.DirectionCameFrom(adjacentIndex, currentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    else
                     {
                         spawnObject = doorwayPrefab;
                     }
@@ -786,10 +792,10 @@ public class DungeonGenerator : MonoBehaviour
 
                 //Stairs and stairspace
                 case CellTypes.STAIRS:
-                    //if (adjacentCell.faceDirection == Cell.DirectionCameFrom(adjacentIndex, currentIndex))
-                    //{
-                    //    spawnObject = doorwayPrefab;
-                    //}
+                    if (adjacentCell.faceDirection != Cell.DirectionCameFrom(adjacentIndex, currentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
                     //Otherwise, the stairs come with a wall on all other sides so it doesn't matter
                     break;
 
@@ -922,7 +928,7 @@ public class DungeonGenerator : MonoBehaviour
 
                 //Check if staircase faces this cell and add wall if false, for rooms, add doorway if true
                 case CellTypes.ROOM:
-                    if (adjacentCell.faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    if (grid.GetCell(currentIndex).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
                     {
                         spawnObject = wallPrefab;
                     }
@@ -932,17 +938,32 @@ public class DungeonGenerator : MonoBehaviour
                     }
                     break;
 
-
+                //Put wall up if not facing the hallway
                 case CellTypes.HALLWAY:
-                    if (adjacentCell.faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    if (grid.GetCell(currentIndex).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
                     {
                         spawnObject = wallPrefab;
                     }
                     break;
 
-                //Do nothing
+                //If moving in different directions, plug the wall
                 case CellTypes.STAIRS:
+                    if(grid.GetCell(currentIndex).faceDirection != adjacentCell.faceDirection)
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    else
+                    {
+                        spawnObject = null;
+                    }
+                    break;
+
+                //Should never need to be open next to a stair space (not accounting for straight staircases since this algorithm puts landings between all stairs)
                 case CellTypes.STAIRSPACE:
+                    spawnObject = wallPrefab;
+                    break;
+
+                //Do nothing
                 default:
 
                     break;
@@ -967,6 +988,43 @@ public class DungeonGenerator : MonoBehaviour
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
                 trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+            }
+        }
+    }
+
+    private void EmptyCellWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
+    {
+        if (grid.IsValidCell(adjacentIndex))
+        {
+            Cell adjacentCell = grid.GetCell(adjacentIndex);
+
+            GameObject spawnObject = null;
+
+            switch (adjacentCell.cellType)
+            {
+                //Wall
+                case CellTypes.ROOM:
+                case CellTypes.HALLWAY:
+                case CellTypes.STAIRS:
+                case CellTypes.STAIRSPACE:
+                    spawnObject = wallPrefab;
+                    break;
+
+                //Do nothing
+                case CellTypes.NONE:
+                default:
+                    break;
+            }
+
+            if (spawnObject != null)
+            {
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+                trans.localScale = CellDimensions;
+
+                if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+                {
+                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                }
             }
         }
     }
