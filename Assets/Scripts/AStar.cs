@@ -191,15 +191,15 @@ public class AStar : MonoBehaviour
                 return TraceBackPath(current);
             }
 
-            //if nextIndex is adjacent to one of the cells in the room and the next node is not a staircase
-            if (goalRoom.HasLevelAdjacentCell(nextIndex, out outCell) && current.indices.y == nextIndex.y)
-            {
-                return TraceBackPath(nextNode);
-            }
-
             //Check that the candidate cell is empty and not already part of our path (don't want to write over previous hallways/stairs
             if (grid.IsCellEmpty(nextIndex) && !IndexInPath(nextIndex, current))
             {
+
+                //if nextIndex is adjacent to one of the cells in the room and the next node is not a staircase
+                if (goalRoom.HasLevelAdjacentCell(nextIndex, out outCell) && current.indices.y == nextIndex.y)
+                {
+                    return TraceBackPath(nextNode);
+                }
 
                 //Skip this cell if open or closed has a node with a lower f value, that means this one is obsolete
                 //Make sure to null check the results before continuing in case a node does not exist with those indices
