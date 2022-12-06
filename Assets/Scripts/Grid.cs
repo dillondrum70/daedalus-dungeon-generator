@@ -78,6 +78,23 @@ public struct Cell
         return Directions.UNDEFINED;
     }
 
+    public static Directions OppositeDirection(Directions dir)
+    {
+        switch(dir)
+        {
+            case Directions.NORTH:
+                return Directions.SOUTH;
+            case Directions.SOUTH:
+                return Directions.NORTH;
+            case Directions.WEST:
+                return Directions.EAST;
+            case Directions.EAST:
+                return Directions.WEST;
+        }
+
+        return Directions.UNDEFINED;
+    }
+
     public void DrawGizmo()
     {
         Gizmos.DrawWireCube(center, sizes);

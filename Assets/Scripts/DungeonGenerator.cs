@@ -548,30 +548,39 @@ public class DungeonGenerator : MonoBehaviour
                                 //Stair cell
                                 grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
 
-                                Transform trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, node.indices), currentPathParent).transform; //Spawn stairwell
+                                //Cache rotation so the space above the stairs has the same rotation and its walls appear on the correct sides
+                                Quaternion stairRotation = GetStairRotation(lastIndices, node.indices);
+
+                                Transform trans = Instantiate(stairsPrefab, pos, stairRotation, currentPathParent).transform; //Spawn stairwell
                                 trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
 
                                 //Stairspace cell
                                 pos += new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
                                 Vector3Int spaceIndex = new Vector3Int(node.indices.x, node.indices.y + 1, node.indices.z);
+
                                 //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
                                 grid.GetCell(spaceIndex).cellType = CellTypes.STAIRSPACE;
-                                trans = Instantiate(stairSpacePrefab, pos, GetStairRotation(lastIndices, spaceIndex), currentPathParent).transform; //Spawn stairspace
+                                grid.GetCell(spaceIndex).faceDirection = Cell.OppositeDirection(grid.GetCell(node.indices).faceDirection);
+                                trans = Instantiate(stairSpacePrefab, pos, stairRotation, currentPathParent).transform; //Spawn stairspace
                                 trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
                             }
                             else if (node.indices.y > lastIndices.y) //Stairwell up
                             {
-                                //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
-                                grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stair space
-                                Transform trans = Instantiate(stairSpacePrefab, pos, GetStairRotation(lastIndices, node.indices), currentPathParent).transform; //Spawn stair space
-                                trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
-
                                 //Stair cell
-                                pos -= new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
                                 Vector3Int stairIndex = new Vector3Int(node.indices.x, node.indices.y - 1, node.indices.z);
+
+                                Quaternion stairRotation = GetStairRotation(lastIndices, stairIndex);
+
                                 grid.GetCell(stairIndex).cellType = CellTypes.STAIRS;  //Mark as stairs
-                                trans = Instantiate(stairsPrefab, pos, GetStairRotation(lastIndices, stairIndex), currentPathParent).transform; //Spawn stair
+                                Transform trans = Instantiate(stairsPrefab, pos - new Vector3(0, cellHeight, 0), stairRotation, currentPathParent).transform; //Spawn stair, Update position to be the cell below the current node
                                 trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
+
+                                //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
+                                grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stairs
+                                grid.GetCell(node.indices).faceDirection = Cell.OppositeDirection(grid.GetCell(stairIndex).faceDirection);
+
+                                trans = Instantiate(stairSpacePrefab, pos, stairRotation, currentPathParent).transform; //Spawn stair space
+                                trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
                             }
                             else //Hallway
                             {
@@ -786,7 +795,7 @@ public class DungeonGenerator : MonoBehaviour
 
                 case CellTypes.STAIRSPACE:
                     //Check the stairs below the stair space for direction, the stairs must be facing away  (therefore leading up the the hallway)
-                    if (grid.GetCell(adjacentIndex + Vector3Int.down).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    if (adjacentCell.faceDirection != Cell.DirectionCameFrom(adjacentIndex, currentIndex))
                     {
                         spawnObject = wallPrefab;
                     }
@@ -839,7 +848,7 @@ public class DungeonGenerator : MonoBehaviour
 
                 //Check if staircase faces this cell and add wall if false, for rooms, add doorway if true
                 case CellTypes.ROOM:
-                    if (grid.GetCell(currentIndex + Vector3Int.down).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    if (grid.GetCell(currentIndex).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
                     {
                         spawnObject = wallPrefab;
                     }
@@ -852,7 +861,15 @@ public class DungeonGenerator : MonoBehaviour
 
                 case CellTypes.HALLWAY:
                     //Get stairs beneath the stair space to find if the stairs face away from the hallway (therefore leading up the the hallway)
-                    if (grid.GetCell(currentIndex + Vector3Int.down).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    if (grid.GetCell(currentIndex).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
+                    {
+                        spawnObject = wallPrefab;
+                    }
+                    break;
+
+                //If moving in different directions, plug the wall
+                case CellTypes.STAIRSPACE:
+                    if(adjacentCell.faceDirection != grid.GetCell(currentIndex).faceDirection)
                     {
                         spawnObject = wallPrefab;
                     }
@@ -860,7 +877,6 @@ public class DungeonGenerator : MonoBehaviour
 
                 //Do nothing
                 case CellTypes.STAIRS:
-                case CellTypes.STAIRSPACE:
                 default:
 
                     break;
@@ -962,6 +978,8 @@ public class DungeonGenerator : MonoBehaviour
 
         float rot = 0f; //stairs face forward
 
+        //Cell cell = ;
+
         if (diff.z < 0) //stairs face backward
         {
             rot = 180f;
@@ -987,6 +1005,9 @@ public class DungeonGenerator : MonoBehaviour
         if (diff.y < 0)  
         {
             rot += 180;
+
+            //Flip logged facing direction
+            grid.GetCell(currentIndices).faceDirection = Cell.OppositeDirection(grid.GetCell(currentIndices).faceDirection);
         }
 
         return Quaternion.Euler(new Vector3(0, rot, 0));
