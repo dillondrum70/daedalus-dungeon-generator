@@ -170,6 +170,9 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] GameObject stairSpacePrefab;
     [SerializeField] GameObject wallPrefab;
     [SerializeField] GameObject doorwayPrefab;
+    [SerializeField] GameObject pillarPrefab; //We store this prefab to add the pillar to the southeast corner of rooms it is not automatically added to from a wall
+    [SerializeField] GameObject archPrefab; //Add between cells of the same type where a wall was not added
+    [SerializeField] GameObject archPillarPrefab;   //For rooms primarily, only usedfor north checks so extra pillars aren't added where they already exist
 
     [Header("Other")]
     [SerializeField] float percentEnableLights = .2f; //percentage [0, 1] of lights on walls enabled
@@ -410,7 +413,6 @@ public class DungeonGenerator : MonoBehaviour
             foreach (Edge e in edges)
             {
                 List<Edge> list;
-                bool added = false, contains = false;
 
                 //Add the edge to the dictionary if it isn't in there already
                 if (totalEdges.TryGetValue(e.pointA, out list))
@@ -689,7 +691,6 @@ public class DungeonGenerator : MonoBehaviour
                             EmptyCellWall(currentIndex, currentIndex + AStar.constEast);
                             break;
                     }
-                    
                 }
             }
         }
@@ -741,7 +742,18 @@ public class DungeonGenerator : MonoBehaviour
 
                 //Do nothing
                 case CellTypes.ROOM:
-                    //No walls between rooms
+                    //If moving north, add a pillar, if east, just the arch
+                    if(Cell.DirectionCameFrom(currentIndex, adjacentIndex) == Directions.SOUTH)
+                    {
+                        spawnObject = archPillarPrefab;
+                    }
+                    else
+                    {
+                        spawnObject = archPrefab;
+                    }
+                    
+                    break;
+                //No walls between rooms
                 default:
                     
                     break;
@@ -796,7 +808,10 @@ public class DungeonGenerator : MonoBehaviour
                     {
                         spawnObject = wallPrefab;
                     }
-                    //Otherwise, the stairs come with a wall on all other sides so it doesn't matter
+                    else
+                    {
+                        spawnObject = archPrefab;
+                    }
                     break;
 
                 case CellTypes.STAIRSPACE:
@@ -805,10 +820,18 @@ public class DungeonGenerator : MonoBehaviour
                     {
                         spawnObject = wallPrefab;
                     }
+                    else
+                    {
+                        spawnObject = archPrefab;
+                    }
+                    break;
+
+                //Just add an arch
+                case CellTypes.HALLWAY:
+                    spawnObject = archPrefab;
                     break;
 
                 //Do nothing
-                case CellTypes.HALLWAY:
                 default:
 
                     break;
@@ -849,6 +872,7 @@ public class DungeonGenerator : MonoBehaviour
             {
                 //Wall
                 case CellTypes.NONE:
+                case CellTypes.STAIRS:  //stair space shouldn't be able to move straight across to a stair space with our algorithm
                     spawnObject = wallPrefab;
                     break;
 
@@ -871,6 +895,10 @@ public class DungeonGenerator : MonoBehaviour
                     {
                         spawnObject = wallPrefab;
                     }
+                    else
+                    {
+                        spawnObject = archPrefab;
+                    }
                     break;
 
                 //If moving in different directions, plug the wall
@@ -882,7 +910,6 @@ public class DungeonGenerator : MonoBehaviour
                     break;
 
                 //Do nothing
-                case CellTypes.STAIRS:
                 default:
 
                     break;
@@ -943,6 +970,14 @@ public class DungeonGenerator : MonoBehaviour
                     if (grid.GetCell(currentIndex).faceDirection != Cell.DirectionCameFrom(currentIndex, adjacentIndex))
                     {
                         spawnObject = wallPrefab;
+                    }
+                    else
+                    {
+                        spawnObject = archPrefab;
+
+                        //NEED WALL PREFAB WITH EXTA PIECE ON TOP BETWEEN CEILING AND ARCH
+                        //otherwise we can see through the ceiling of the next hallway
+                        Debug.LogWarning("Implement special case stair arch prefab here");
                     }
                     break;
 
@@ -1008,6 +1043,17 @@ public class DungeonGenerator : MonoBehaviour
                 case CellTypes.STAIRS:
                 case CellTypes.STAIRSPACE:
                     spawnObject = wallPrefab;
+
+                    //Adds back that one pillar on the southeast corner of each structure that is (supposed to be) missing since walls only come with pillars on one side
+                    //This is part of the system that reduces duplication of models
+                    if((!grid.IsValidCell(adjacentIndex + AStar.constSouth) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth)) &&
+                       (!grid.IsValidCell(adjacentIndex + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constEast)) &&
+                       (!grid.IsValidCell(adjacentIndex + AStar.constSouth + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth + AStar.constEast)))
+                    {
+                        Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+                        trans.localScale = CellDimensions;
+                    }
+
                     break;
 
                 //Do nothing

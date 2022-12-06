@@ -407,6 +407,9 @@ MonoBehaviour:
   stairSpacePrefab: {fileID: 6965430385258804789, guid: e953a451bc1cd5b4188b827bbfeb8520, type: 3}
   wallPrefab: {fileID: 6965430385258804789, guid: 952ddc8d91461c641b08950ac10edfd4, type: 3}
   doorwayPrefab: {fileID: 6965430385258804789, guid: 90f8850c665daeb4c99725ecfbe4c079, type: 3}
+  pillarPrefab: {fileID: 6965430385258804789, guid: fa60c3bc83142c84d941a055b765a3e7, type: 3}
+  archPrefab: {fileID: 6965430385258804789, guid: 80244d7fd17960d4b9d196746f69eb91, type: 3}
+  archPillarPrefab: {fileID: 6965430385258804789, guid: ef15833a8312aeb47a0e415905c014b3, type: 3}
   percentEnableLights: 0.2
   extraHallwaysFactor: 0.3
   test: {x: 5, y: 5, z: 5}
