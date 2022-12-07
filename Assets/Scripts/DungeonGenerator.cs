@@ -177,6 +177,9 @@ public class DungeonGenerator : MonoBehaviour
     [Header("Other")]
     [SerializeField] float percentEnableLights = .2f; //percentage [0, 1] of lights on walls enabled
 
+    [Header("Gameplay")]
+    [SerializeField] GameObject playerPrefab;
+
     [SerializeField] float extraHallwaysFactor = .5f;   //Adds (<extra> * leftover room count) number of rooms after minimum spanning tree determined
 
     List<Room> rooms = new();
