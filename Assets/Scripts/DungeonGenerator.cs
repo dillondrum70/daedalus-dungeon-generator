@@ -724,8 +724,8 @@ public class DungeonGenerator : MonoBehaviour
                             }
                             break;
                         case CellTypes.NONE:
-                            //EmptyCellWall(currentIndex, currentIndex + AStar.constNorth);
-                            //EmptyCellWall(currentIndex, currentIndex + AStar.constEast);
+                            EmptyCellWall(currentIndex, currentIndex + AStar.constNorth);
+                            EmptyCellWall(currentIndex, currentIndex + AStar.constEast);
                             break;
                     }
                 }
@@ -1054,7 +1054,7 @@ public class DungeonGenerator : MonoBehaviour
         }
         else //If next index is not valid, it is empty and we need a wall
         {
-            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+            Transform trans = Instantiate(noTorchWall, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
             trans.localScale = CellDimensions;
 
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
