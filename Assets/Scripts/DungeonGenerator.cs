@@ -84,7 +84,7 @@ public class Room : IEquatable<Room>
     {
         //Initialize closes to to far away, invalid value
         Vector3Int closest = new Vector3Int((int)grid.GridDimensions.x, (int)grid.GridDimensions.y, (int)grid.GridDimensions.z) * 3;
-        for(int i = 1; i < cells.Count; i++)
+        for(int i = 0; i < cells.Count; i++)
         {
             if(cells[i].HasFreeLevelAdjacentCell(grid) &&                                      //If has free adjacent space to the N, S, E, or W 
                (closest - goalIndex).sqrMagnitude > (cells[i].index - goalIndex).sqrMagnitude) //and closer to goal
@@ -179,6 +179,8 @@ public class DungeonGenerator : MonoBehaviour
 
     [Header("Gameplay")]
     [SerializeField] GameObject playerPrefab;
+    Camera orbitCamera;
+    Camera playerCamera;
 
     [SerializeField] float extraHallwaysFactor = .5f;   //Adds (<extra> * leftover room count) number of rooms after minimum spanning tree determined
 
@@ -195,13 +197,13 @@ public class DungeonGenerator : MonoBehaviour
 
     Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
-    [SerializeField] Vector3Int test;
-
     private void Start()
     {
         grid = GetComponent<Grid>();
 
         grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
+
+        orbitCamera = FindObjectOfType<Camera>();
 
         //Generate();
     }
@@ -213,11 +215,36 @@ public class DungeonGenerator : MonoBehaviour
             Clear();
             Generate();
         }
+
+        if(Input.GetKeyDown(KeyCode.KeypadEnter))
+        {
+            if(playerCamera)
+            {
+                if(orbitCamera.enabled)
+                {
+                    orbitCamera.enabled = false;
+                    playerCamera.enabled = true;
+                }
+                else
+                {
+                    orbitCamera.enabled = true;
+                    playerCamera.enabled = false;
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Could not get player camera");
+            }
+        }
     }
 
     void Clear()
     {
         //Empty all arrays and delete all current rooms
+        if (playerCamera)
+        {
+            Destroy(playerCamera.transform.parent.gameObject);
+        }
         tetrahedrons.Clear();
         rooms.Clear();
         totalEdges.Clear();
@@ -287,6 +314,11 @@ public class DungeonGenerator : MonoBehaviour
         CarveHallways();
 
         PlaceWalls();
+
+        GameObject player = Instantiate(playerPrefab, rooms[0].cells[0].center, Quaternion.identity, null);
+        player.transform.localScale = Vector3.one;
+        playerCamera = player.transform.Find("Main Camera").GetComponent<Camera>();
+        player.GetComponent<PlayerMovement>().PlayerStart();
 
         Debug.Log("Algorithm Time: " + (float)(Time.realtimeSinceStartupAsDouble - realtime) + " seconds");
     }
@@ -528,7 +560,7 @@ public class DungeonGenerator : MonoBehaviour
                 //    }
                 //}
 
-                Vector3Int startIndices = pair.Key.ClosestValidStartRoom(room.center, grid);
+                Vector3Int startIndices = pair.Key.ClosestValidStartRoom(grid.GetGridIndices(room.center), grid);
 
                 if (grid.IsValidCell(startIndices))
                 {

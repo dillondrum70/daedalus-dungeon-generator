@@ -163,6 +163,12 @@ public class Grid : MonoBehaviour
         }
     }
 
+    //Returns the world position center of the grid
+    public Vector3 GetGridCenter()
+    {
+        return new Vector3(cellCountX * .5f * cellWidth, cellCountY * .5f * cellHeight, cellCountZ * .5f * cellDepth);
+    }
+
     public Vector3 GetCenter(Vector3 pos)
     {
         Vector3 indices = GetGridIndices(pos);

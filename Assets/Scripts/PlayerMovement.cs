@@ -23,7 +23,7 @@ public class PlayerMovement : MonoBehaviour
 
     float rotY = 0;
 
-    void Start()
+    public void PlayerStart()
     {
         Cursor.lockState = CursorLockMode.Locked;
         camera = transform.Find("Main Camera");
@@ -43,11 +43,12 @@ public class PlayerMovement : MonoBehaviour
         transform.Rotate(0, lookRight * turnSpeed, 0);
 
         //Collision
-        if (colliders.Count > 0)
+        if(colliders.Count > 0)
         {
             forwardDir = Vector3.zero;
             rightDir = Vector3.zero;
         }
+        
 
         foreach (Collision collision in colliders)
         {
@@ -74,8 +75,22 @@ public class PlayerMovement : MonoBehaviour
         Debug.DrawRay(transform.position, forwardDir, Color.green);
         Debug.DrawRay(transform.position, rightDir, Color.red);
 
+        float moveZ = Input.GetAxisRaw("Vertical");
+        float moveX = Input.GetAxisRaw("Horizontal");
+
         //Movement
-        Vector3 move = ((Input.GetAxisRaw("Vertical") * forwardDir) + (Input.GetAxisRaw("Horizontal") * rightDir)).normalized;
+        Vector3 move = (moveZ * forwardDir) + (moveX * rightDir).normalized;
+
+        if(moveX < .1f && moveZ < .1f)
+        {
+            //rb.velocity -= Vector3.Dot(rb.velocity, rightDir) * (rb.velocity - rightDir).normalized;
+            rb.constraints &= ~RigidbodyConstraints.FreezePositionX;
+            rb.constraints &= ~RigidbodyConstraints.FreezePositionZ;
+        }
+        else
+        {
+            rb.constraints |= RigidbodyConstraints.FreezePositionX & RigidbodyConstraints.FreezePositionZ;
+        }
 
         rb.AddForce(move * moveSpeed * Time.deltaTime);
 
