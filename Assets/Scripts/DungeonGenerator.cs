@@ -218,7 +218,7 @@ public class DungeonGenerator : MonoBehaviour
             Generate();
         }
 
-        if(Input.GetKeyDown(KeyCode.KeypadEnter))
+        if(Input.GetKeyDown(KeyCode.Return))
         {
             if(playerCamera)
             {

@@ -216,8 +216,8 @@ public class AStar : MonoBehaviour
                         nextNode.extraStairIndex = (nextIndex.y < current.indices.y ? nextIndex + Vector3Int.up : nextIndex - Vector3Int.up);
                         nextNode.nodeType = CellTypes.STAIRS;
 
-                        //If cell for staircase isn't empty, then staircase is invalid
-                        if(!grid.IsCellEmpty(nextNode.extraStairIndex))
+                        //If cell for staircase isn't empty or in our path, then staircase is invalid
+                        if(!grid.IsCellEmpty(nextNode.extraStairIndex) || IndexInPath(nextIndex, current))
                         {
                             return null;
                         }
