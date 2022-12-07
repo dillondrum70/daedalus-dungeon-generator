@@ -52,21 +52,24 @@ public class PlayerMovement : MonoBehaviour
 
         foreach (Collision collision in colliders)
         {
-            Vector3 thisForward = Vector3.Cross(-collision.contacts[0].normal, transform.right);
-            if (Vector3.Angle(transform.forward, thisForward) > maxUpwardMoveAngle)
+            if(collision.contacts.Length > 0)
             {
-                thisForward = transform.forward;
+                Vector3 thisForward = Vector3.Cross(-collision.contacts[0].normal, transform.right);
+                if (Vector3.Angle(transform.forward, thisForward) > maxUpwardMoveAngle)
+                {
+                    thisForward = transform.forward;
+                }
+
+                forwardDir += thisForward;
+
+                Vector3 thisRight = Vector3.Cross(collision.contacts[0].normal, transform.forward);
+                if (Vector3.Angle(transform.right, thisRight) > maxUpwardMoveAngle)
+                {
+                    thisRight = transform.right;
+                }
+
+                rightDir += thisRight;
             }
-
-            forwardDir += thisForward;
-
-            Vector3 thisRight = Vector3.Cross(collision.contacts[0].normal, transform.forward);
-            if (Vector3.Angle(transform.right, thisRight) > maxUpwardMoveAngle)
-            {
-                thisRight = transform.right;
-            }
-
-            rightDir += thisRight;
         }
 
         forwardDir.Normalize();

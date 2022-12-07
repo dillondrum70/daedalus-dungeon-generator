@@ -173,6 +173,8 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] GameObject pillarPrefab; //We store this prefab to add the pillar to the southeast corner of rooms it is not automatically added to from a wall
     [SerializeField] GameObject archPrefab; //Add between cells of the same type where a wall was not added
     [SerializeField] GameObject archPillarPrefab;   //For rooms primarily, only usedfor north checks so extra pillars aren't added where they already exist
+    [SerializeField] GameObject wallFaceOutPrefab;  //For empty cells that are filling in walls of other non-empty cells
+    [SerializeField] GameObject noTorchWall;    //For when an empty cell puts a wall on a staircase
 
     [Header("Other")]
     [SerializeField] float percentEnableLights = .2f; //percentage [0, 1] of lights on walls enabled
@@ -1075,26 +1077,31 @@ public class DungeonGenerator : MonoBehaviour
                 //Wall
                 case CellTypes.ROOM:
                 case CellTypes.HALLWAY:
-                case CellTypes.STAIRS:
                 case CellTypes.STAIRSPACE:
-                    spawnObject = wallPrefab;
+                    spawnObject = wallFaceOutPrefab;
+                    break;
 
-                    //Adds back that one pillar on the southeast corner of each structure that is (supposed to be) missing since walls only come with pillars on one side
-                    //This is part of the system that reduces duplication of models
-                    if((!grid.IsValidCell(adjacentIndex + AStar.constSouth) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth)) &&
-                       (!grid.IsValidCell(adjacentIndex + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constEast)) &&
-                       (!grid.IsValidCell(adjacentIndex + AStar.constSouth + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth + AStar.constEast)))
-                    {
-                        Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-                        trans.localScale = CellDimensions;
-                    }
-
+                case CellTypes.STAIRS:
+                    spawnObject = noTorchWall;
                     break;
 
                 //Do nothing
                 case CellTypes.NONE:
                 default:
                     break;
+            }
+
+            if(adjacentCell.cellType != CellTypes.NONE)
+            {
+                //Adds back that one pillar on the southeast corner of each structure that is (supposed to be) missing since walls only come with pillars on one side
+                //This is part of the system that reduces duplication of models
+                if ((!grid.IsValidCell(adjacentIndex + AStar.constSouth) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth)) &&
+                   (!grid.IsValidCell(adjacentIndex + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constEast)) &&
+                   (!grid.IsValidCell(adjacentIndex + AStar.constSouth + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth + AStar.constEast)))
+                {
+                    Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+                    trans.localScale = CellDimensions;
+                }
             }
 
             if (spawnObject != null)

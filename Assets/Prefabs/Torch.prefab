@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7675729940450202797}
   - component: {fileID: 3096494356754951350}
+  - component: {fileID: 1423034458098756585}
   m_Layer: 0
   m_Name: Point Light
   m_TagString: Untagged
@@ -39,7 +40,7 @@ Light:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6007427672078201047}
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 10
   m_Type: 2
   m_Shape: 0
@@ -94,6 +95,19 @@ Light:
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 1
   m_ShadowAngle: 0
+--- !u!114 &1423034458098756585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6007427672078201047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47e258f0ff5dcc14ea9e9cff457ac31d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  disableDist: 20
 --- !u!1 &6965430385258804789
 GameObject:
   m_ObjectHideFlags: 0
@@ -200,6 +214,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7511558181221131132, guid: f99920cb5031fda4683f6b789d441c75, type: 3}
       propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: f99920cb5031fda4683f6b789d441c75, type: 3}
+      propertyPath: m_ReflectionProbeUsage
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f99920cb5031fda4683f6b789d441c75, type: 3}

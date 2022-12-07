@@ -600,6 +600,10 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 7c77ae90c2399a741abc26cbc24061a1, type: 3}
+      propertyPath: m_ReflectionProbeUsage
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 7c77ae90c2399a741abc26cbc24061a1, type: 3}
       propertyPath: m_Name
       value: SM_DoorWay
@@ -678,6 +682,10 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 006f07311740cea47befbab74dc9ac9e, type: 3}
+      propertyPath: m_ReflectionProbeUsage
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 006f07311740cea47befbab74dc9ac9e, type: 3}
       propertyPath: m_Name
       value: SM_Ceiling_Arch_A
@@ -747,6 +755,10 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: ee2ad886829b0734990ca43fcb93f0e8, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 131.853
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: ee2ad886829b0734990ca43fcb93f0e8, type: 3}
+      propertyPath: m_ReflectionProbeUsage
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: ee2ad886829b0734990ca43fcb93f0e8, type: 3}
       propertyPath: m_Name
@@ -871,6 +883,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: -102.857
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: ac79fd479656c664986f93e685c36f46, type: 3}
+      propertyPath: m_ReflectionProbeUsage
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: ac79fd479656c664986f93e685c36f46, type: 3}
       propertyPath: m_Name
       value: SM_DoorWay_Large_Door_Right
@@ -943,6 +959,10 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: ea4225d53062e3347b840bfd03bf0c0d, type: 3}
       propertyPath: m_ConstrainProportionsScale
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: ea4225d53062e3347b840bfd03bf0c0d, type: 3}
+      propertyPath: m_ReflectionProbeUsage
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: ea4225d53062e3347b840bfd03bf0c0d, type: 3}
       propertyPath: m_Name

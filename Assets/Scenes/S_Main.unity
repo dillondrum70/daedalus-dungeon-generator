@@ -326,6 +326,8 @@ MonoBehaviour:
   pillarPrefab: {fileID: 6965430385258804789, guid: fa60c3bc83142c84d941a055b765a3e7, type: 3}
   archPrefab: {fileID: 6965430385258804789, guid: 80244d7fd17960d4b9d196746f69eb91, type: 3}
   archPillarPrefab: {fileID: 6965430385258804789, guid: ef15833a8312aeb47a0e415905c014b3, type: 3}
+  wallFaceOutPrefab: {fileID: 6965430385258804789, guid: a9d66d9b898e847479a6b0c4ab914c21, type: 3}
+  noTorchWall: {fileID: 6965430385258804789, guid: 4d7b2d54f37645f48b7fa54cb665ce5e, type: 3}
   percentEnableLights: 0.2
   playerPrefab: {fileID: 4966452792278149619, guid: 1a611992acb32eb4daf7008a4154e162, type: 3}
   extraHallwaysFactor: 0.3
@@ -387,8 +389,8 @@ Camera:
   m_GameObject: {fileID: 1950131198}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
