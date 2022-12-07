@@ -724,8 +724,8 @@ public class DungeonGenerator : MonoBehaviour
                             }
                             break;
                         case CellTypes.NONE:
-                            EmptyCellWall(currentIndex, currentIndex + AStar.constNorth);
-                            EmptyCellWall(currentIndex, currentIndex + AStar.constEast);
+                            //EmptyCellWall(currentIndex, currentIndex + AStar.constNorth);
+                            //EmptyCellWall(currentIndex, currentIndex + AStar.constEast);
                             break;
                     }
                 }
