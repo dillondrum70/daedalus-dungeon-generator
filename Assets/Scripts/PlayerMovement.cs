@@ -81,15 +81,26 @@ public class PlayerMovement : MonoBehaviour
         //Movement
         Vector3 move = (moveZ * forwardDir) + (moveX * rightDir).normalized;
 
-        if(moveX < .1f && moveZ < .1f)
+        if(Mathf.Abs(moveX) > .1f || Mathf.Abs(moveZ) > .1f)
         {
-            //rb.velocity -= Vector3.Dot(rb.velocity, rightDir) * (rb.velocity - rightDir).normalized;
+            //Allow movement on input
             rb.constraints &= ~RigidbodyConstraints.FreezePositionX;
             rb.constraints &= ~RigidbodyConstraints.FreezePositionZ;
         }
         else
         {
-            rb.constraints |= RigidbodyConstraints.FreezePositionX & RigidbodyConstraints.FreezePositionZ;
+            //Stop from sliding down stairs when not pressing anything
+            rb.constraints |= RigidbodyConstraints.FreezePositionX;
+            rb.constraints |= RigidbodyConstraints.FreezePositionZ;
+        }
+
+        if(Vector3.Angle(transform.forward, forwardDir) > 20f)
+        {
+            rb.useGravity = false;
+        }
+        else
+        {
+            rb.useGravity = true;
         }
 
         rb.AddForce(move * moveSpeed * Time.deltaTime);
@@ -100,5 +111,11 @@ public class PlayerMovement : MonoBehaviour
     private void OnCollisionStay(Collision collision)
     {
         colliders.Add(collision);
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        forwardDir = Vector3.zero;
+        rightDir = Vector3.zero;
     }
 }
