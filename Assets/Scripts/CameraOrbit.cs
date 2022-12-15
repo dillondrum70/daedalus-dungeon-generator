@@ -10,6 +10,8 @@ public class CameraOrbit : MonoBehaviour
     [SerializeField] float scrollSpeed = 10f;
 
     [SerializeField] float dist = 50f;
+    [SerializeField] bool autoPan = false;
+    [SerializeField] float panSpeed = .3f;
 
     void Start()
     {
@@ -29,6 +31,11 @@ public class CameraOrbit : MonoBehaviour
         {
             rotX = -Input.GetAxis("Mouse X");
             rotY = Input.GetAxis("Mouse Y");
+        }
+
+        if(autoPan)
+        {
+            rotX += panSpeed;
         }
 
         dist += zoom;
