@@ -10,6 +10,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] float turnSpeed = 2f;
     [SerializeField] float lookDownMaxAngle = -80f;
     [SerializeField] float lookUpMaxAngle = 80f;
+    [SerializeField] bool freezeCam = false;
 
     [Header("Movement")]
     [SerializeField] float moveSpeed = 5f;
@@ -33,9 +34,20 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if(Input.GetKeyDown(KeyCode.F))
+        {
+            freezeCam = !freezeCam;
+        }
+
+        float lookRight = 0;
+        float lookUp = 0;
+
         //Rotation
-        float lookRight = Input.GetAxis("Mouse X");
-        float lookUp = Input.GetAxis("Mouse Y");
+        if (!freezeCam)
+        {
+            lookRight = Input.GetAxis("Mouse X");
+            lookUp = Input.GetAxis("Mouse Y");
+        }
 
         rotY = Mathf.Clamp(rotY + (lookUp * turnSpeed), lookDownMaxAngle, lookUpMaxAngle);
 

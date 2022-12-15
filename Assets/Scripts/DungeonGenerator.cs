@@ -172,7 +172,7 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] GameObject doorwayPrefab;
     [SerializeField] GameObject pillarPrefab; //We store this prefab to add the pillar to the southeast corner of rooms it is not automatically added to from a wall
     [SerializeField] GameObject archPrefab; //Add between cells of the same type where a wall was not added
-    [SerializeField] GameObject archPillarPrefab;   //For rooms primarily, only usedfor north checks so extra pillars aren't added where they already exist
+    //[SerializeField] GameObject archPillarPrefab;   //For rooms primarily, only usedfor north checks so extra pillars aren't added where they already exist
     [SerializeField] GameObject wallFaceOutPrefab;  //For empty cells that are filling in walls of other non-empty cells
     [SerializeField] GameObject noTorchWall;    //For when an empty cell puts a wall on a staircase
 
@@ -682,6 +682,7 @@ public class DungeonGenerator : MonoBehaviour
                             {
                                 RoomWall(currentIndex, currentIndex + AStar.constWest);
                             }
+                            PlacePillar(currentIndex);
                             break;
 
                         case CellTypes.HALLWAY:
@@ -696,6 +697,7 @@ public class DungeonGenerator : MonoBehaviour
                             {
                                 HallWall(currentIndex, currentIndex + AStar.constWest);
                             }
+                            PlacePillar(currentIndex);
                             break;
                         case CellTypes.STAIRSPACE:
                             StairSpaceWall(currentIndex, currentIndex + AStar.constNorth);
@@ -709,6 +711,7 @@ public class DungeonGenerator : MonoBehaviour
                             {
                                 StairSpaceWall(currentIndex, currentIndex + AStar.constWest);
                             }
+                            PlacePillar(currentIndex);
                             break;
                         case CellTypes.STAIRS:
                             StairWall(currentIndex, currentIndex + AStar.constNorth);
@@ -722,6 +725,7 @@ public class DungeonGenerator : MonoBehaviour
                             {
                                 StairWall(currentIndex, currentIndex + AStar.constWest);
                             }
+                            PlacePillar(currentIndex);
                             break;
                         case CellTypes.NONE:
                             EmptyCellWall(currentIndex, currentIndex + AStar.constNorth);
@@ -730,6 +734,30 @@ public class DungeonGenerator : MonoBehaviour
                     }
                 }
             }
+        }
+    }
+
+    private void PlacePillar(Vector3Int currentIndex)
+    {
+        Transform trans1 = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.identity, roomParent.transform).transform;
+        trans1.localScale = CellDimensions;
+
+        if ((!grid.IsValidCell(currentIndex + AStar.constSouth + AStar.constEast) || grid.IsCellEmpty(currentIndex + AStar.constSouth + AStar.constEast)))
+        {
+            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 90, 0)), roomParent.transform).transform;
+            trans.localScale = CellDimensions;
+        }
+
+        if ((!grid.IsValidCell(currentIndex + AStar.constSouth + AStar.constWest) || grid.IsCellEmpty(currentIndex + AStar.constSouth + AStar.constWest)))
+        {
+            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 180, 0)), roomParent.transform).transform;
+            trans.localScale = CellDimensions;
+        }
+
+        if ((!grid.IsValidCell(currentIndex + AStar.constNorth + AStar.constWest) || grid.IsCellEmpty(currentIndex + AStar.constNorth + AStar.constWest)))
+        {
+            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 270, 0)), roomParent.transform).transform;
+            trans.localScale = CellDimensions;
         }
     }
 
@@ -780,15 +808,16 @@ public class DungeonGenerator : MonoBehaviour
                 //Do nothing
                 case CellTypes.ROOM:
                     //If moving north, add a pillar, if east, just the arch
-                    if(Cell.DirectionCameFrom(currentIndex, adjacentIndex) == Directions.SOUTH)
-                    {
-                        spawnObject = archPillarPrefab;
-                    }
-                    else
-                    {
-                        spawnObject = archPrefab;
-                    }
-                    
+                    //if(Cell.DirectionCameFrom(currentIndex, adjacentIndex) == Directions.SOUTH)
+                    //{
+                    //    spawnObject = archPillarPrefab;
+                    //}
+                    //else
+                    //{
+                    //    spawnObject = archPrefab;
+                    //}
+                    spawnObject = archPrefab;
+
                     break;
                 //No walls between rooms
                 default:
@@ -1014,7 +1043,7 @@ public class DungeonGenerator : MonoBehaviour
 
                         //NEED WALL PREFAB WITH EXTA PIECE ON TOP BETWEEN CEILING AND ARCH
                         //otherwise we can see through the ceiling of the next hallway
-                        Debug.LogWarning("Implement special case stair arch prefab here");
+                        //Debug.LogWarning("Implement special case stair arch prefab here");
                     }
                     break;
 
@@ -1091,18 +1120,18 @@ public class DungeonGenerator : MonoBehaviour
                     break;
             }
 
-            if(adjacentCell.cellType != CellTypes.NONE)
-            {
-                //Adds back that one pillar on the southeast corner of each structure that is (supposed to be) missing since walls only come with pillars on one side
-                //This is part of the system that reduces duplication of models
-                if ((!grid.IsValidCell(adjacentIndex + AStar.constSouth) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth)) &&
-                   (!grid.IsValidCell(adjacentIndex + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constEast)) &&
-                   (!grid.IsValidCell(adjacentIndex + AStar.constSouth + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth + AStar.constEast)))
-                {
-                    Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-                    trans.localScale = CellDimensions;
-                }
-            }
+            //if(adjacentCell.cellType != CellTypes.NONE)
+            //{
+            //    //Adds back that one pillar on the southeast corner of each structure that is (supposed to be) missing since walls only come with pillars on one side
+            //    //This is part of the system that reduces duplication of models
+            //    if ((!grid.IsValidCell(adjacentIndex + AStar.constSouth) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth)) &&
+            //       (!grid.IsValidCell(adjacentIndex + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constEast)) &&
+            //       (!grid.IsValidCell(adjacentIndex + AStar.constSouth + AStar.constEast) || grid.IsCellEmpty(adjacentIndex + AStar.constSouth + AStar.constEast)))
+            //    {
+            //        Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
+            //        trans.localScale = CellDimensions;
+            //    }
+            //}
 
             if (spawnObject != null)
             {
