@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// A class that demonstrates how the Dungeon Generator can be used.
+/// </summary>
 public class DemoClass : MonoBehaviour
 {
 [Header("Gameplay")]
@@ -20,12 +23,23 @@ public class DemoClass : MonoBehaviour
         dungeonGenerator.onDungeonGenerate.AddListener(OnDungeonGenerate);
     }
 
+    /// <summary>
+    /// Handles player input for generating the dungeon and toggling to first person and orbit camera mode
+    /// </summary>
     private void Update()
     {
+        //Clear last dungeon and generate new dungeon
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            dungeonGenerator.Generate();
+        }
+
         //Toggle between orbiting camera and first person view
         if (Input.GetKeyDown(KeyCode.Return))
         {
-            if (playerCamera) //Sanity check
+            //Make sure this isn't partway through dungeon generation where player
+            //has been destroyed and not reinitialized yet
+            if (playerCamera) 
             {
                 //Toggle cameras
                 if (orbitCamera.enabled)
@@ -46,15 +60,24 @@ public class DemoClass : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Destroys player when dungeon is reset
+    /// </summary>
     void OnDungeonClear()
     {
         //Empty all arrays and delete all current rooms
         if (playerCamera)
         {
+            orbitCamera.enabled = true;
+            playerCamera.enabled = false;
+
             Destroy(playerCamera.transform.parent.gameObject);
         }
     }
 
+    /// <summary>
+    /// Creates new player once dungeon is generated
+    /// </summary>
     void OnDungeonGenerate()
     {
         //DEMO: Create a player inside the first cell of the first room

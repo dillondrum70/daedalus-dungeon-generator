@@ -104,12 +104,7 @@ public class DungeonGenerator : MonoBehaviour
     /// </summary>
     private void Update()
     {
-        //Clear last dungeon and generate new dungeon
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            Clear();
-            Generate();
-        }
+        
     }
 
     /// <summary>
@@ -142,7 +137,7 @@ public class DungeonGenerator : MonoBehaviour
     /// <summary>
     /// Generates dungeon
     /// </summary>
-    void Generate()
+    public void Generate()
     {
         //Transform trans = Instantiate(room, new Vector3(0 * cellWidth, 0 * cellHeight, 0 * cellDepth), Quaternion.identity, roomParent.transform).transform;
         //trans.localScale = CellDimensions;
@@ -171,6 +166,9 @@ public class DungeonGenerator : MonoBehaviour
         //}
 
         double realtime = Time.realtimeSinceStartupAsDouble; //Store initial time before algorithm starts
+
+        //Clear old dungeon info
+        Clear();
 
         //Randomly place rooms
         GenerateRandomRooms();
