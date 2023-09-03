@@ -306,18 +306,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7358060b9e273e4c963b423587352ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cellWidth: 5
-  cellHeight: 5
-  cellDepth: 5
-  cellCountX: 20
-  cellCountY: 10
-  cellCountZ: 20
+  cellDimensions: {x: 5, y: 5, z: 5}
+  gridDimensions: {x: 20, y: 10, z: 20}
   room: {fileID: 6965430385258804789, guid: 690f69c3938c79647bbd02ad226599fd, type: 3}
-  roomParent: {fileID: 1240957116}
+  roomParent: {fileID: 1240957117}
   numRandomRooms: 10
   maxSize: {x: 4, y: 1, z: 4}
   minSize: {x: 2, y: 1, z: 2}
-  pathParent: {fileID: 1940476237}
+  pathParent: {fileID: 1940476238}
   hallPrefab: {fileID: 6965430385258804789, guid: 0f84e41cdaaa05e49b7a3032209405f2, type: 3}
   stairsPrefab: {fileID: 6965430385258804789, guid: 953aa0c076d8e11408a5456f630ba64c, type: 3}
   stairSpacePrefab: {fileID: 6965430385258804789, guid: e953a451bc1cd5b4188b827bbfeb8520, type: 3}
@@ -328,6 +324,7 @@ MonoBehaviour:
   wallFaceOutPrefab: {fileID: 6965430385258804789, guid: a9d66d9b898e847479a6b0c4ab914c21, type: 3}
   noTorchWall: {fileID: 6965430385258804789, guid: 4d7b2d54f37645f48b7fa54cb665ce5e, type: 3}
   percentEnableLights: 0.2
+  displayAlgorithmTime: 1
   playerPrefab: {fileID: 4966452792278149619, guid: 1a611992acb32eb4daf7008a4154e162, type: 3}
   extraHallwaysFactor: 0.3
 --- !u!1 &1940476237
@@ -372,6 +369,7 @@ GameObject:
   - component: {fileID: 1950131201}
   - component: {fileID: 1950131200}
   - component: {fileID: 1950131202}
+  - component: {fileID: 1950131203}
   m_Layer: 0
   m_Name: Orbit Camera
   m_TagString: MainCamera
@@ -454,3 +452,36 @@ MonoBehaviour:
   dist: 100
   autoPan: 0
   panSpeed: 0.3
+--- !u!114 &1950131203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1950131198}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_Version: 2

@@ -4,167 +4,44 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 
-[Serializable]
-public class Room : IEquatable<Room>
-{
-    //lowest x, y, and z valued cell in room
-    //Cell parentCell;
 
-    //cells contained by room
-    //index 0 is parent cell, lowest x, y, and z value in the room
-    public List<Cell> cells = new List<Cell>();
-
-    public Vector3 center;
-
-    //Find average position of cells to find center of room
-    public void CalculateCenter()
-    {
-        Vector3 avgPos = Vector3.zero;
-
-        foreach (Cell c in cells)
-        {
-            avgPos += c.center;
-        }
-
-        avgPos = avgPos / cells.Count;
-
-        center = avgPos;
-    }
-
-    //If one of the cells in the room is next to the passed index (including above or below), return true
-    public bool HasAdjacentCell(Vector3Int index)
-    {
-        foreach (Cell c in cells)
-        {
-            if ((c.index - index).sqrMagnitude == 1)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    //If one of the cells in the room is next to the passed index (not above or below), return true
-    public bool HasLevelAdjacentCell(Vector3Int index, out Cell adjacentCell)
-    {
-        adjacentCell = default;
-
-        foreach(Cell c in cells)
-        {
-            if((c.index - index).sqrMagnitude == 1 && index.y == c.index.y)
-            {
-                adjacentCell = c;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    //If one of the cells in the room matches the passed index, return true
-    public bool ContainsIndex(Vector3Int index, out Cell outCell)
-    {
-        outCell = default;
-        foreach (Cell c in cells)
-        {
-            if (index == c.index)
-            {
-                outCell = c;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-
-    //Returns the indices of the closest room to the goal index that has an open side so A star can perform
-    public Vector3Int ClosestValidStartRoom(Vector3 goalIndex, Grid grid)
-    {
-        //Initialize closes to to far away, invalid value
-        Vector3Int closest = new Vector3Int((int)grid.GridDimensions.x, (int)grid.GridDimensions.y, (int)grid.GridDimensions.z) * 3;
-        for(int i = 0; i < cells.Count; i++)
-        {
-            if(cells[i].HasFreeLevelAdjacentCell(grid) &&                                      //If has free adjacent space to the N, S, E, or W 
-               (closest - goalIndex).sqrMagnitude > (cells[i].index - goalIndex).sqrMagnitude) //and closer to goal
-            {
-                closest = cells[i].index;
-            }
-        }
-
-        return closest;
-    }
-
-    public bool Equals(Room other)
-    {
-        return this == other;
-    }
-
-    //We could go in depth here and check if each cell is equivalent, but in reality, rooms should theoretically never have the same center so we shouldn't need to worry
-    public static bool operator ==(Room lhs, Room rhs)
-    {
-        //Check if either is null before accessing variables
-        if(lhs is Room && rhs is Room)
-        {
-            return (lhs.center == rhs.center) && (lhs.cells.Count == rhs.cells.Count);
-        }
-
-        //If at least one parameter was null, return true if both are
-        return lhs is null && rhs is null;
-    } 
-
-    public static bool operator !=(Room lhs, Room rhs)
-        => !(lhs == rhs);
-
-    //public static bool operator ==(Room lhs, Edge rhs)
-    //    => ((lhs.center == rhs.pointA) || (lhs.center == rhs.pointB));
-
-    //public static bool operator !=(Room lhs, Edge rhs)
-    //    => !(lhs == rhs);
-}
-
-
-
-
-
-
+/// <summary>
+/// DungeonGenerator Component:
+/// Main component of the dungeon generator.  This is where the generator starts and
+/// ties together all the other components of this package.
+/// Entry Point: Generate()
+/// </summary>
 public class DungeonGenerator : MonoBehaviour
 {
+    [Tooltip("Stores all cells in dungeon.")]
     Grid grid;
 
-    [Header("Cell Dimensions")]
-    //Dimensions of cell
-    [SerializeField] float cellWidth = 2.0f;   //X
-    [SerializeField] float cellHeight = 2.0f;  //Y
-    [SerializeField] float cellDepth = 2.0f;   //Z
+[Header("Cell Dimensions")]
+    [Tooltip("Dimensions of a singular cell in Unity units.\n" +
+        "Width, Height, and Depth respectively in X, Y, and Z components.")]
+    public Vector3 cellDimensions = new Vector3(2, 2, 2);
 
-    public Vector3 CellDimensions
-    {
-        get { return new Vector3(cellWidth, cellHeight, cellDepth); }
-    }
+[Header("Grid Dimensions")]
+    [Tooltip("Dimensions of the entire grid in terms of cells.\n" +
+        "Width, Height, and Depth respectively in X, Y, and Z components.")]
+    public Vector3 gridDimensions = new Vector3(10, 10, 10);
 
-    [Header("Grid Dimensions")]
-    //Number of cells in each direction
-    [SerializeField] int cellCountX = 10;
-    [SerializeField] int cellCountY = 10;
-    [SerializeField] int cellCountZ = 10;
-
-    public Vector3 GridDimensions
-    {
-        get { return new Vector3(cellCountX, cellCountY, cellCountZ); }
-    }
-
-    [Header("Room Parameters")]
+[Header("Room Parameters")]
+    [Tooltip("Prefab of room cell.")]
     [SerializeField] GameObject room;
-    [SerializeField] GameObject roomParent;
+    [Tooltip("Transform under which all rooms are parented")]
+    [SerializeField] Transform roomParent;
 
-    [SerializeField] int numRandomRooms = 4;
-    [SerializeField] Vector3 maxSize = new Vector3(3, 1, 3);
-    [SerializeField] Vector3 minSize = new Vector3(1, 1, 1);
+    [Tooltip("Number of rooms to randomly place within the dungeon space.")]
+    [SerializeField] int numRandomRooms = 10;
+    [Tooltip("Maximum size of room in cells.  Room size is randomized between [minSize, maxSize].")]
+    [SerializeField] Vector3 maxSize = new Vector3(4, 1, 4);
+    [Tooltip("Minimum size of room in cells.   Room size is randomized between [minSize, maxSize].")]
+    [SerializeField] Vector3 minSize = new Vector3(2, 1, 2);
 
-    [Header("Path Parameters")]
-    [SerializeField] GameObject pathParent;
+[Header("Path Parameters")]
+    [Tooltip("Transform parent for path prefabs.")]
+    [SerializeField] Transform pathParent;
     [SerializeField] GameObject hallPrefab;
     [SerializeField] GameObject stairsPrefab;
     [SerializeField] GameObject stairSpacePrefab;
@@ -176,52 +53,72 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] GameObject wallFaceOutPrefab;  //For empty cells that are filling in walls of other non-empty cells
     [SerializeField] GameObject noTorchWall;    //For when an empty cell puts a wall on a staircase
 
-    [Header("Other")]
-    [SerializeField] float percentEnableLights = .2f; //percentage [0, 1] of lights on walls enabled
+[Header("Other")]
+    [Tooltip("Percentage chance [0, 1] for lights being placed on a new wall.")]
+    [Range(0, 1)]
+    [SerializeField] float percentEnableLights = .2f;
+    [Tooltip("Display debug logs for algorithm time.")]
+    [SerializeField] bool displayAlgorithmTime = true;
 
-    [Header("Gameplay")]
+[Header("Gameplay")]
     [SerializeField] GameObject playerPrefab;
     Camera orbitCamera;
     Camera playerCamera;
 
-    [SerializeField] float extraHallwaysFactor = .5f;   //Adds (<extra> * leftover room count) number of rooms after minimum spanning tree determined
+    [Tooltip("Adds (<this variable> * number of hallways excluded from MST) hallways to final graph after minimum spanning tree determined.\n" +
+        "Adds some freedom of choice for player so there is more than one path between each room.")]
+    [SerializeField] float extraHallwaysFactor = .5f;
 
+    //All rooms in dungeon
     List<Room> rooms = new();
 
+    //Tetrahedrons used in Delaunay Tetrahedralization
     List<Tetrahedron> tetrahedrons = new List<Tetrahedron>();
 
+    //The tetrahedron that all dungeons reside within that we use to add new points (rooms) to the tetrahedralization
     Tetrahedron superTetrahedron;
 
     //Will store adjacency list of edges in tetrahedralization excluding duplicates
     Dictionary<Vector3, List<Edge>> totalEdges = new Dictionary<Vector3, List<Edge>>();
 
+    //Reference to the MST class
     MinimumSpanningTree minAlgorithm = new();
 
+    //Map of all rooms and the rooms they are connected to.
+    //i.e. 1 : {2, 4} means room 1 is conencted via hallway to room 2 and room 4
+    //This is an adjacency list of a directed graph (directed so we don't try to make duplicate hallways.
     Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
     private void Start()
     {
+        //Grid component should be on the same object as the DungeonGenerator component
         grid = GetComponent<Grid>();
 
-        grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
+        //Initialize grid with given dimensions of individual cells and dimensions of overall grid
+        grid.InitGrid(cellDimensions, gridDimensions);
 
+        //DEMO: Used to demo the plugin
         orbitCamera = FindObjectOfType<Camera>();
-
-        //Generate();
     }
 
+    /// <summary>
+    /// DEMO: Demonstrates DungeonGenerator
+    /// </summary>
     private void Update()
     {
+        //Clear last dungeon and generate new dungeon
         if (Input.GetKeyDown(KeyCode.Space))
         {
             Clear();
             Generate();
         }
 
-        if(Input.GetKeyDown(KeyCode.Return))
+        //Toggle between orbiting camera and first person view
+        if (Input.GetKeyDown(KeyCode.Return))
         {
-            if(playerCamera)
+            if(playerCamera) //Sanity check
             {
+                //Toggle cameras
                 if(orbitCamera.enabled)
                 {
                     orbitCamera.enabled = false;
@@ -240,6 +137,10 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clears all lists, dictionaries, and other members of DungeonGenerator except component references.
+    /// Reinitializes grid component.
+    /// </summary>
     void Clear()
     {
         //Empty all arrays and delete all current rooms
@@ -251,17 +152,22 @@ public class DungeonGenerator : MonoBehaviour
         rooms.Clear();
         totalEdges.Clear();
         roomMap.Clear();
-        foreach (Transform child in roomParent.transform)
+        foreach (Transform child in roomParent)
         {
             Destroy(child.gameObject);
         }
-        foreach (Transform child in pathParent.transform)
+        foreach (Transform child in pathParent)
         {
             Destroy(child.gameObject);
         }
-        grid.InitGrid(new Vector3(cellWidth, cellHeight, cellDepth), new Vector3(cellCountX, cellCountY, cellCountZ));
+
+        //Initialize fresh, empty grid
+        grid.InitGrid(cellDimensions, gridDimensions);
     }
 
+    /// <summary>
+    /// Generates dungeon
+    /// </summary>
     void Generate()
     {
         //Transform trans = Instantiate(room, new Vector3(0 * cellWidth, 0 * cellHeight, 0 * cellDepth), Quaternion.identity, roomParent.transform).transform;
@@ -290,11 +196,15 @@ public class DungeonGenerator : MonoBehaviour
         //    Debug.Log("null");
         //}
 
-        double realtime = Time.realtimeSinceStartupAsDouble;
+        double realtime = Time.realtimeSinceStartupAsDouble; //Store initial time before algorithm starts
+
+        //Randomly place rooms
         GenerateRandomRooms();
 
+        //Delaunay Tetrahedralization to create streamlined map
         CreateConnectedMap();
 
+        //Check that the dictionary of all edges in the delaunay tetrahedralization actually has edges
         Vector3 start = Vector3.zero;
         IEnumerator enumerator = totalEdges.Keys.GetEnumerator(); //Get enumerator of keys
         bool success = enumerator.MoveNext();   //Move to first key
@@ -304,32 +214,49 @@ public class DungeonGenerator : MonoBehaviour
         }
         else
         {
-            throw new Exception("No keys in edge map.  Can not execute MST");
+            Debug.LogError("No keys in edge map from tetrahedralization.  Can not execute MST.\n" +
+                "Try checking that rooms are actually getting created and that tetrahedralization is functioning.");
         }
 
+        //Create MST
         List<Edge> minSpanTree = minAlgorithm.DerriveMST(out List<Edge> excluded, start, totalEdges);
 
+        //Add hallways randomly from the list of hallways not in the minimum spanning tree
         AddRandomHallways(ref minSpanTree, ref excluded);
 
+        //Turn the list of edges into an adjacency list of rooms
         ConvertEdgesBackToRooms(minSpanTree);
 
+        //Create hallways between rooms using A*
+        //This is the heaviest function computationally.  If you experience performance issues, this is likely the culprit.
         CarveHallways();
 
+        //Place walls in between rooms and hallways (keeps hallways and rooms from having 
         PlaceWalls();
 
+        //DEMO: Create a player inside the first cell of the first room
         GameObject player = Instantiate(playerPrefab, rooms[0].cells[0].center, Quaternion.identity, null);
         player.transform.localScale = Vector3.one;
         playerCamera = player.transform.Find("Main Camera").GetComponent<Camera>();
         player.GetComponent<PlayerMovement>().PlayerStart();
 
-        Debug.Log("Algorithm Time: " + (float)(Time.realtimeSinceStartupAsDouble - realtime) + " seconds");
+        //Display total time for algorithm
+        if(displayAlgorithmTime)
+        {
+            //On an Intel 9th Gen i9, this algorithm takes ~1-5 seconds to run for reference.
+            Debug.Log("Algorithm Time: " + (float)(Time.realtimeSinceStartupAsDouble - realtime) + " seconds");
+        }
     }
 
+    /// <summary>
+    /// Generate random rooms of random sizes on the grid.
+    /// </summary>
     void GenerateRandomRooms()
     {
-        //To add noise for pseudo-randomness, we could sample perlin noise at the worldspace position of each cell (or average perlin noise in each cell from
+        //TODO: add noise for pseudo-randomness, we could sample perlin noise at the worldspace position of each cell (or average perlin noise in each cell from
         //a set of candidate points) and, if it is above some threshold, we make it a room.
 
+        //Loop through for each room
         for (int i = 0; i < numRandomRooms; i++)
         {
             Vector3 randPos = Vector3.zero;
@@ -341,10 +268,12 @@ public class DungeonGenerator : MonoBehaviour
                 UnityEngine.Random.Range(minSize.z, maxSize.z)
             );
 
+            //TODO: Create an elegant solution for degenerate tetrahedrals and triangles of rooms
             //I have this commented out because there are too many variables that go into preventing degenerate tetrahedrals.
             //If the 4 given points lie on the same plane (the plane can have any orientation) then tetrahedralization on those points fails
             //It may be simpler to just remove rooms that have a degenerate tetrahedral
-            //Maybe we can go back and add 2d triangulation oriented to the plane?
+            //The likely solution is to go back into the git history and add back the 2d triangulation oriented to the plane
+            //in these cases, but that doesn't fix degenerate triangles (all rooms in a straight line).
             //The system below won't work because rooms can still be placed in between the 4 extremal rooms which, with only 5 rooms for example,
             //tetrahedralization would fail between the first room and the room on the other side of the fifth room
 
@@ -369,23 +298,23 @@ public class DungeonGenerator : MonoBehaviour
             //else
             //{
             randPos = new Vector3(
-                CellDimensions.x * UnityEngine.Random.Range(0, GridDimensions.x),
-                CellDimensions.y * UnityEngine.Random.Range(0, GridDimensions.y),
-                CellDimensions.z * UnityEngine.Random.Range(0, GridDimensions.z)
+                cellDimensions.x * UnityEngine.Random.Range(0, gridDimensions.x),
+                cellDimensions.y * UnityEngine.Random.Range(0, gridDimensions.y),
+                cellDimensions.z * UnityEngine.Random.Range(0, gridDimensions.z)
             );
             //}
 
             Vector3 gridCenter = grid.GetCenter(randPos);
             Vector3Int gridIndices = grid.GetGridIndices(randPos);
 
-            //Make sure room exists before defining one for the map
-            if (gridIndices.x < GridDimensions.x && gridIndices.x >= 0 &&
-               gridIndices.y < GridDimensions.y && gridIndices.y >= 0 &&
-               gridIndices.z < GridDimensions.z && gridIndices.z >= 0)
+            //Make sure cell exists in the grid before defining one for the map
+            if (gridIndices.x < gridDimensions.x && gridIndices.x >= 0 &&
+               gridIndices.y < gridDimensions.y && gridIndices.y >= 0 &&
+               gridIndices.z < gridDimensions.z && gridIndices.z >= 0)
             {
                 Room newRoom = new Room();
 
-                //Loop through random size to add rooms and make the one room the size of randSize
+                //Loop through random size to add cells and make one room the size of randSize in cells
                 for (int j = 0; j < randSize.x; j++)
                 {
                     for (int k = 0; k < randSize.y; k++)
@@ -401,37 +330,47 @@ public class DungeonGenerator : MonoBehaviour
                                 continue;
                             }
 
+                            //Get cell center
                             Vector3 currentCenter = grid.GetCenterByIndices(currentIndices);
 
+                            //Set cell type to ROOM and add to room
                             grid.GetCell(currentIndices).cellType = CellTypes.ROOM;
                             newRoom.cells.Add(grid.GetCell(currentIndices));
 
-                            Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent.transform).transform;
+                            //Create room prefab in the cell and set it's dimensions
+                            Transform trans = Instantiate(room, currentCenter, Quaternion.identity, roomParent).transform;
 
-                            trans.localScale = CellDimensions;
+                            trans.localScale = cellDimensions;
                         }
                     }
                 }
 
+                //Perform first time calculation of room center which is stored in the class
                 newRoom.CalculateCenter();
 
+                //Add to rooms
                 rooms.Add(newRoom);
             }
         }
     }
 
+    /// <summary>
+    /// Performs Delaunay Tetrahedralization on the list of rooms
+    /// </summary>
     void CreateConnectedMap()
     {
+        //Define a super tetrahedron that is guaranteed to encapsulate the entire grid
         superTetrahedron = new Tetrahedron(
-            new Vector3(-cellWidth * cellCountX, -cellHeight * cellCountY, -cellDepth * cellCountZ) * 2,
-            new Vector3(cellWidth * cellCountX * 4, -cellHeight, -cellDepth),
-            new Vector3(-cellWidth, cellHeight * cellCountY * 4, -cellDepth),
-            new Vector3(-cellWidth, -cellHeight, cellDepth * cellCountZ * 4)
+            new Vector3(-cellDimensions.x * gridDimensions.x, -cellDimensions.y * gridDimensions.y, -cellDimensions.z * gridDimensions.z) * 2,
+            new Vector3(cellDimensions.x * gridDimensions.x * 4, -cellDimensions.y, -cellDimensions.z),
+            new Vector3(-cellDimensions.x, cellDimensions.y * gridDimensions.y * 4, -cellDimensions.z),
+            new Vector3(-cellDimensions.x, -cellDimensions.y, cellDimensions.z * gridDimensions.z * 4)
         );
 
         //Define super tetrahedron that contains all rooms
         //tetrahedrons.Add(superTetrahedron);
 
+        //Create list of points from the rooms
         List<Vector3> pointList = new List<Vector3>();
         foreach (Room room in rooms)
         {
@@ -442,7 +381,8 @@ public class DungeonGenerator : MonoBehaviour
         tetrahedrons = DelaunayTriangulation.Tetrahedralize(superTetrahedron, pointList);
 
         //Count up each edge in tetrahedralization once and add a second with the points reversed so we have an adjacency list of an
-        //undirected graph
+        //undirected graph.  This means looping through every edge in every tetrahedron which has a lot of duplicates.
+        //TODO: Optimize this
         foreach (Tetrahedron tet in tetrahedrons)
         {
             Edge[] edges = tet.GetEdges();
@@ -458,9 +398,11 @@ public class DungeonGenerator : MonoBehaviour
                     {
                         list.Add(e);
                     }
+                    //Else do nothing.  Already has edge
                 }
                 else
                 {
+                    //If totalEdges does not have a value at e.pointA, initialize the value and add the new KeyValuePair
                     List<Edge> newList = new();
                     newList.Add(e);
                     totalEdges.Add(e.pointA, newList);
@@ -473,9 +415,11 @@ public class DungeonGenerator : MonoBehaviour
                     {
                         list.Add(new Edge(e.pointB, e.pointA));
                     }
+                    //Else do nothing, already has edge
                 }
                 else
                 {
+                    //If totalEdges does nto have an entry for e.pointB, create a new dictionary entry
                     List<Edge> newList = new();
                     newList.Add(new Edge(e.pointB, e.pointA));
                     totalEdges.Add(e.pointB, newList);
@@ -484,6 +428,11 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Add back random hallways after the Minimum Spanning Tree is derived from tetrahedralization
+    /// </summary>
+    /// <param name="minSpanTree">The MST to add edges back to</param>
+    /// <param name="excluded">List of edges not in minSpanTree</param>
     void AddRandomHallways(ref List<Edge> minSpanTree, ref List<Edge> excluded)
     {
         //Add random number of edges from excluded to minSpanTree
@@ -493,11 +442,18 @@ public class DungeonGenerator : MonoBehaviour
         {
             int hallIndex = UnityEngine.Random.Range(0, excluded.Count - 1);
 
+            //Add edge to minSpanTree and remove it from excluded, this ensures duplicate edges are not added since
+            //the graph exclided + minSpanTree should not have any duplicates
             minSpanTree.Add(excluded[i]);
             excluded.RemoveAt(i);
         }
     }
 
+    /// <summary>
+    /// Turns the list of edges into an adjacency list (dictionary) of rooms.
+    /// TODO: Optimize this
+    /// </summary>
+    /// <param name="finalMap">Finalized edge list that needs to be turned into a room adjacency list</param>
     void ConvertEdgesBackToRooms(List<Edge> finalMap)
     {
         //Match rooms to edges to get room map
@@ -506,6 +462,7 @@ public class DungeonGenerator : MonoBehaviour
             Room room1 = null;
             Room room2 = null;
 
+            //Go through each room and check if it matched pointA or pointB
             foreach (Room room in rooms)
             {
                 if (room.center == e.pointA)
@@ -517,15 +474,17 @@ public class DungeonGenerator : MonoBehaviour
                     room2 = room;
                 }
             }
-
-            if (room1 != null && room2 != null)
+            
+            if (room1 != null && room2 != null) //Sanity check, rooms should exist
             {
+                //Add connected room to the value list under room1 key
                 if (roomMap.TryGetValue(room1, out List<Room> roomList))
                 {
                     roomList.Add(room2);
                 }
                 else
                 {
+                    //Adds new dictionary entry for room1
                     List<Room> newRooms = new List<Room>();
                     newRooms.Add(room2);
                     roomMap.Add(room1, newRooms);
@@ -534,6 +493,10 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Creates hallways and staircases between rooms, spawns in objects.
+    /// TODO: Optimize this
+    /// </summary>
     void CarveHallways()
     {
         foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
@@ -561,106 +524,120 @@ public class DungeonGenerator : MonoBehaviour
                 //        start = pair.Key.cells[i].center;
                 //    }
                 //}
+                
+                //Cell closest to the goal room
+                Vector3Int startIndices = pair.Key.ClosestValidStartCell(grid.GetGridIndices(room.center), grid);
 
-                Vector3Int startIndices = pair.Key.ClosestValidStartRoom(grid.GetGridIndices(room.center), grid);
-
-                if (grid.IsValidCell(startIndices))
+                if (grid.IsValidCell(startIndices)) //Sanity check
                 {
+                    //Run A* algorithm
                     Stack<AStarNode> path = AStar.Run(startIndices, grid.GetGridIndices(room.center), room, grid);
 
+                    //Set up currentPathParent
                     Transform currentPathParent = new GameObject().transform;
                     currentPathParent.name = "Path";
-                    currentPathParent.parent = pathParent.transform;
+                    currentPathParent.parent = pathParent;
 
                     //path might return null if A* failed
-                    if (path != null)
-                    {
-                        //Store the last Y value so we know when we've added a stairwell
-                        Vector3Int lastIndices = startIndices;
-                        foreach (AStarNode node in path)
-                        {
-                            //Get center position of unit
-                            Vector3 pos = new Vector3(node.indices.x * cellWidth, node.indices.y * cellHeight, node.indices.z * cellDepth);
-
-                            if (node.indices.y < lastIndices.y) //Stairwell down
-                            {
-                                //Stair cell
-                                grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
-
-                                //Cache rotation so the space above the stairs has the same rotation and its walls appear on the correct sides
-                                Quaternion stairRotation = GetStairRotation(lastIndices, node.indices);
-
-                                Transform trans = Instantiate(stairsPrefab, pos, stairRotation, currentPathParent).transform; //Spawn stairwell
-                                trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
-
-                                //Stairspace cell
-                                pos += new Vector3(0, cellHeight, 0); //Update position to be the cell above the current node
-                                Vector3Int spaceIndex = new Vector3Int(node.indices.x, node.indices.y + 1, node.indices.z);
-
-                                //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
-                                grid.GetCell(spaceIndex).cellType = CellTypes.STAIRSPACE;
-                                grid.GetCell(spaceIndex).faceDirection = Cell.OppositeDirection(grid.GetCell(node.indices).faceDirection);
-                                trans = Instantiate(stairSpacePrefab, pos, stairRotation, currentPathParent).transform; //Spawn stairspace
-                                trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
-                            }
-                            else if (node.indices.y > lastIndices.y) //Stairwell up
-                            {
-                                //Stair cell
-                                Vector3Int stairIndex = new Vector3Int(node.indices.x, node.indices.y - 1, node.indices.z);
-
-                                Quaternion stairRotation = GetStairRotation(lastIndices, stairIndex);
-
-                                grid.GetCell(stairIndex).cellType = CellTypes.STAIRS;  //Mark as stairs
-                                Transform trans = Instantiate(stairsPrefab, pos - new Vector3(0, cellHeight, 0), stairRotation, currentPathParent).transform; //Spawn stair, Update position to be the cell below the current node
-                                trans.localScale = CellDimensions; //Scale the unit to fit the grid cell
-
-                                //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
-                                grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stairs
-                                grid.GetCell(node.indices).faceDirection = Cell.OppositeDirection(grid.GetCell(stairIndex).faceDirection);
-
-                                trans = Instantiate(stairSpacePrefab, pos, stairRotation, currentPathParent).transform; //Spawn stair space
-                                trans.localScale = CellDimensions;  //Scale the unit to fit the grid cell
-                            }
-                            else //Hallway
-                            {
-                                //Mark grid cell as hallway
-                                grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
-
-                                //Spawn hallway
-                                Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, currentPathParent).transform;
-
-                                //Scale the unit to fit the grid cell
-                                trans.localScale = CellDimensions;
-                            }
-
-                            //Update last y with this node's y value
-                            lastIndices = node.indices;
-                        }
-                    }
-                    else
+                    if (path == null)
                     {
                         Debug.LogError("A-Star Path Failed");
+                        //Log the time this step took
+                        if (displayAlgorithmTime)
+                        {
+                            Debug.Log("Path Time: " + (Time.realtimeSinceStartup - realtime));
+                        }
+                        continue;
                     }
 
-                    //Log the time this step took
-                    Debug.Log("Path Time: " + (Time.realtimeSinceStartup - realtime));
+                    //Store the last Y value so we know when we've added a stairwell
+                    Vector3Int lastIndices = startIndices;
+                    foreach (AStarNode node in path)
+                    {
+                        //Get center position of unit
+                        Vector3 pos = new Vector3(node.indices.x * cellDimensions.x, node.indices.y * cellDimensions.y, node.indices.z * cellDimensions.z);
+
+                        if (node.indices.y < lastIndices.y) //Stairwell down
+                        {
+                            //Stair cell
+                            grid.GetCell(node.indices).cellType = CellTypes.STAIRS; //Mark next space as stairs
+
+                            //Cache rotation so the space above the stairs has the same rotation and its walls appear on the correct sides
+                            Quaternion stairRotation = GetStairRotation(lastIndices, node.indices);
+
+                            Transform trans = Instantiate(stairsPrefab, pos, stairRotation, currentPathParent).transform; //Spawn stairwell
+                            trans.localScale = cellDimensions;  //Scale the unit to fit the grid cell
+
+                            //Stairspace cell
+                            pos += new Vector3(0, cellDimensions.y, 0); //Update position to be the cell above the current node
+                            Vector3Int spaceIndex = new Vector3Int(node.indices.x, node.indices.y + 1, node.indices.z);
+
+                            //Mark space above next space as stairspace so it remains empty and their is space to go down the stairs
+                            grid.GetCell(spaceIndex).cellType = CellTypes.STAIRSPACE;
+                            grid.GetCell(spaceIndex).faceDirection = Cell.OppositeDirection(grid.GetCell(node.indices).faceDirection);
+                            trans = Instantiate(stairSpacePrefab, pos, stairRotation, currentPathParent).transform; //Spawn stairspace
+                            trans.localScale = cellDimensions; //Scale the unit to fit the grid cell
+                        }
+                        else if (node.indices.y > lastIndices.y) //Stairwell up
+                        {
+                            //Stair cell
+                            Vector3Int stairIndex = new Vector3Int(node.indices.x, node.indices.y - 1, node.indices.z);
+
+                            Quaternion stairRotation = GetStairRotation(lastIndices, stairIndex);
+
+                            grid.GetCell(stairIndex).cellType = CellTypes.STAIRS;  //Mark as stairs
+                            Transform trans = Instantiate(stairsPrefab, pos - new Vector3(0, cellDimensions.y, 0), stairRotation, currentPathParent).transform; //Spawn stair, Update position to be the cell below the current node
+                            trans.localScale = cellDimensions; //Scale the unit to fit the grid cell
+
+                            //Stairspace cell, cells up diagonally must be an empty space and the cell below them holds the actual stairs
+                            grid.GetCell(node.indices).cellType = CellTypes.STAIRSPACE; //Mark next space as stairs
+                            grid.GetCell(node.indices).faceDirection = Cell.OppositeDirection(grid.GetCell(stairIndex).faceDirection);
+
+                            trans = Instantiate(stairSpacePrefab, pos, stairRotation, currentPathParent).transform; //Spawn stair space
+                            trans.localScale = cellDimensions;  //Scale the unit to fit the grid cell
+                        }
+                        else //Hallway
+                        {
+                            //Mark grid cell as hallway
+                            grid.GetCell(node.indices).cellType = CellTypes.HALLWAY;
+
+                            //Spawn hallway
+                            Transform trans = Instantiate(hallPrefab, pos, Quaternion.identity, currentPathParent).transform;
+
+                            //Scale the unit to fit the grid cell
+                            trans.localScale = cellDimensions;
+                        }
+
+                        //Update last y with this node's y value
+                        lastIndices = node.indices;
+                    }
                 }
                 else
                 {
                     Debug.LogError("Valid starting cell could not be found");
                 }
+
+                //Log the time this step took
+                if (displayAlgorithmTime)
+                {
+                    Debug.Log("Path Time: " + (Time.realtimeSinceStartup - realtime));
+                }
             }
         }
     }
 
+    /// <summary>
+    /// Place walls on rooms and hallways.  Separating this step prevents hallways from blocking off other paths and 
+    /// creates some emergent behavior between adjacent hallways which creates some open areas, double staircases, etc.
+    /// </summary>
     private void PlaceWalls()
     {
         //Do a pass of all cells and determine what types of walls to add 
-        for (int x = 0; x < cellCountX; x++)
+        for (int x = 0; x < gridDimensions.x; x++)
         {
-            for (int y = 0; y < cellCountY; y++)
+            for (int y = 0; y < gridDimensions.y; y++)
             {
-                for (int z = 0; z < cellCountZ; z++)
+                for (int z = 0; z < gridDimensions.z; z++)
                 {
                     Vector3Int currentIndex = new Vector3Int(x, y, z);
                     //Check this node's cell type to determine what walls should be added
@@ -674,11 +651,11 @@ public class DungeonGenerator : MonoBehaviour
                             RoomWall(currentIndex, currentIndex + AStar.constEast);
 
                             //If on grid bounds, there is no previous node to do this check, needs to be done by this node
-                            if(currentIndex.z == 0)
+                            if(currentIndex.z == 0) //Southern edge of grid
                             {
                                 RoomWall(currentIndex, currentIndex + AStar.constSouth);
                             }
-                            if(currentIndex.x == 0)
+                            if(currentIndex.x == 0) //Eastern edge of grid
                             {
                                 RoomWall(currentIndex, currentIndex + AStar.constWest);
                             }
@@ -737,38 +714,49 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Check if pillars need to be placed at current index
+    /// </summary>
+    /// <param name="currentIndex">Index of cell in which to place pillars</param>
     private void PlacePillar(Vector3Int currentIndex)
     {
-        Transform trans1 = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.identity, roomParent.transform).transform;
-        trans1.localScale = CellDimensions;
+        Transform trans1 = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.identity, roomParent).transform;
+        trans1.localScale = cellDimensions;
 
         if ((!grid.IsValidCell(currentIndex + AStar.constSouth + AStar.constEast) || grid.IsCellEmpty(currentIndex + AStar.constSouth + AStar.constEast)))
         {
-            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 90, 0)), roomParent.transform).transform;
-            trans.localScale = CellDimensions;
+            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 90, 0)), roomParent).transform;
+            trans.localScale = cellDimensions;
         }
 
         if ((!grid.IsValidCell(currentIndex + AStar.constSouth + AStar.constWest) || grid.IsCellEmpty(currentIndex + AStar.constSouth + AStar.constWest)))
         {
-            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 180, 0)), roomParent.transform).transform;
-            trans.localScale = CellDimensions;
+            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 180, 0)), roomParent).transform;
+            trans.localScale = cellDimensions;
         }
 
         if ((!grid.IsValidCell(currentIndex + AStar.constNorth + AStar.constWest) || grid.IsCellEmpty(currentIndex + AStar.constNorth + AStar.constWest)))
         {
-            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 270, 0)), roomParent.transform).transform;
-            trans.localScale = CellDimensions;
+            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 270, 0)), roomParent).transform;
+            trans.localScale = cellDimensions;
         }
     }
 
+    /// <summary>
+    /// Check to place walls and doorways on specific wall between given indices for a room.
+    /// </summary>
+    /// <param name="currentIndex">Index of current cell</param>
+    /// <param name="adjacentIndex">Index of cell adjacent to current cell</param>
     private void RoomWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
     {
-        if(grid.IsValidCell(adjacentIndex))
+        if(grid.IsValidCell(adjacentIndex)) //Check if adjacent cell exists
         {
             Cell adjacentCell = grid.GetCell(adjacentIndex);
 
             GameObject spawnObject = null;
 
+            //Place different prefabs for wall based on adjecent cell type
+            //Spawns doorway if leaving or entering a room
             switch(adjacentCell.cellType)
             {
                 //Doorway
@@ -825,11 +813,13 @@ public class DungeonGenerator : MonoBehaviour
                     break;
             }
 
+            //If the object set to be spawned is not null, instantiate the object
             if(spawnObject != null)
             {
-                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-                trans.localScale = CellDimensions;
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+                trans.localScale = cellDimensions;
 
+                //Random check to enable lights
                 if(UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
                     trans.gameObject.GetComponent<StartLight>()?.EnableLight();
@@ -838,9 +828,10 @@ public class DungeonGenerator : MonoBehaviour
         }
         else //If next index is not valid, it is empty and we need a wall
         {
-            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-            trans.localScale = CellDimensions;
+            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+            trans.localScale = cellDimensions;
 
+            //Check to enable light
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
                 trans.gameObject.GetComponent<StartLight>()?.EnableLight();
@@ -848,14 +839,20 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Place walls and doorways on a hallway between given indices.
+    /// </summary>
+    /// <param name="currentIndex">Index of current cell</param>
+    /// <param name="adjacentIndex">Index of cell adjacent to current cell</param>
     private void HallWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
     {
-        if (grid.IsValidCell(adjacentIndex))
+        if (grid.IsValidCell(adjacentIndex)) //Check if on border of grid
         {
             Cell adjacentCell = grid.GetCell(adjacentIndex);
 
             GameObject spawnObject = null;
 
+            //Determine type of prefab to place based on adjacent cell type
             switch (adjacentCell.cellType)
             {
                 //Wall
@@ -903,10 +900,11 @@ public class DungeonGenerator : MonoBehaviour
                     break;
             }
 
+            //Spawn object if one needs to be spawned
             if (spawnObject != null)
             {
-                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-                trans.localScale = CellDimensions;
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+                trans.localScale = cellDimensions;
 
                 if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
@@ -916,8 +914,8 @@ public class DungeonGenerator : MonoBehaviour
         }
         else //If next index is not valid, it is empty and we need a wall
         {
-            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-            trans.localScale = CellDimensions;
+            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+            trans.localScale = cellDimensions;
 
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
@@ -926,9 +924,14 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Handle wall placement for the cell above stairwells
+    /// </summary>
+    /// <param name="currentIndex">Index of current cell (stair space)</param>
+    /// <param name="adjacentIndex">Index of adjacent cell</param>
     private void StairSpaceWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
     {
-        if (grid.IsValidCell(adjacentIndex))
+        if (grid.IsValidCell(adjacentIndex)) //Check if adjacent cell exists
         {
             Cell adjacentCell = grid.GetCell(adjacentIndex);
 
@@ -981,10 +984,11 @@ public class DungeonGenerator : MonoBehaviour
                     break;
             }
 
+            //Spawn object if one needs to be spawned
             if (spawnObject != null)
             {
-                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-                trans.localScale = CellDimensions;
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+                trans.localScale = cellDimensions;
 
                 if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
@@ -994,8 +998,8 @@ public class DungeonGenerator : MonoBehaviour
         }
         else //If next index is not valid, it is empty and we need a wall
         {
-            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-            trans.localScale = CellDimensions;
+            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+            trans.localScale = cellDimensions;
 
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
@@ -1004,6 +1008,11 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Check what wall to place between a stair cell and adjacent cells
+    /// </summary>
+    /// <param name="currentIndex">Index of current cell (stair cell)</param>
+    /// <param name="adjacentIndex">Index of adjacent cell</param>
     private void StairWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
     {
         if (grid.IsValidCell(adjacentIndex))
@@ -1040,10 +1049,6 @@ public class DungeonGenerator : MonoBehaviour
                     else
                     {
                         spawnObject = archPrefab;
-
-                        //NEED WALL PREFAB WITH EXTA PIECE ON TOP BETWEEN CEILING AND ARCH
-                        //otherwise we can see through the ceiling of the next hallway
-                        //Debug.LogWarning("Implement special case stair arch prefab here");
                     }
                     break;
 
@@ -1072,8 +1077,8 @@ public class DungeonGenerator : MonoBehaviour
 
             if (spawnObject != null)
             {
-                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-                trans.localScale = CellDimensions;
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+                trans.localScale = cellDimensions;
 
                 if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
@@ -1083,8 +1088,8 @@ public class DungeonGenerator : MonoBehaviour
         }
         else //If next index is not valid, it is empty and we need a wall
         {
-            Transform trans = Instantiate(noTorchWall, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-            trans.localScale = CellDimensions;
+            Transform trans = Instantiate(noTorchWall, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+            trans.localScale = cellDimensions;
 
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
@@ -1093,6 +1098,11 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Check what wall to place for an empty cell and adjacent cell
+    /// </summary>
+    /// <param name="currentIndex">Index of current empty cell</param>
+    /// <param name="adjacentIndex">Index of adjacent cell</param>
     private void EmptyCellWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
     {
         if (grid.IsValidCell(adjacentIndex))
@@ -1135,8 +1145,8 @@ public class DungeonGenerator : MonoBehaviour
 
             if (spawnObject != null)
             {
-                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent.transform).transform;
-                trans.localScale = CellDimensions;
+                Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+                trans.localScale = cellDimensions;
 
                 if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
@@ -1188,7 +1198,12 @@ public class DungeonGenerator : MonoBehaviour
         return Quaternion.Euler(new Vector3(0, rot, 0));
     }
 
-    //Return wall rotation needed to place a wall between the two indices
+    /// <summary>
+    /// Return wall rotation needed to place a wall between the two indices
+    /// </summary>
+    /// <param name="lastIndices">Last 3D cell index</param>
+    /// <param name="currentIndices">Current 3D cell index</param>
+    /// <returns></returns>
     private Quaternion GetWallRotation(Vector3Int lastIndices, Vector3Int currentIndices)
     {
         Vector3Int diff = currentIndices - lastIndices;
@@ -1211,6 +1226,9 @@ public class DungeonGenerator : MonoBehaviour
         return Quaternion.Euler(new Vector3(0, rot, 0));
     }
 
+    /// <summary>
+    /// Debug gizmos, currently just shows final edges in room graph
+    /// </summary>
     private void OnDrawGizmos()
     {
         if (Application.isPlaying)

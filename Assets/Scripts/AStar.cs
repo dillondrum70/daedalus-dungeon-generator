@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Directions from a given cell
+/// No diagonals
+/// Vertical cells ignored since stairs handle those automatically
+/// </summary>
 public enum Directions
 {
     UNDEFINED = 0,
@@ -11,92 +16,58 @@ public enum Directions
     WEST
 }
 
-public class AStarNode : IComparable<AStarNode>
-{
-    public AStarNode parent = null;
-
-    public float h = 0; //Distance to goal
-    public float g = 0; //Number of moves from start
-    public float f = 0; //sum of g and h
-
-    public Vector3Int indices = Vector3Int.zero; //indices in grid of this node
-    public Vector3Int extraStairIndex = Vector3Int.zero;    //Stores index of the extra space if this is a staircase node
-
-    public CellTypes nodeType = CellTypes.HALLWAY;
-
-    public AStarNode(Vector3Int valIndices, float valG, float valH, AStarNode valParent = null, CellTypes valType = CellTypes.HALLWAY)
-    {
-        indices = valIndices;
-        g = valG;
-        h = valH;
-        f = valH + valG;
-        parent = valParent;
-        nodeType = valType;
-    }
-
-    //public float F() { return h + g; }  //F is the sum of h and g, the lower the F, the better the node is for the path
-
-    public static bool operator ==(AStarNode lhs, AStarNode rhs)
-    {
-        //Null check before accessing AStarNode member variables
-        if (lhs is AStarNode && rhs is AStarNode)
-        {
-            return (lhs.f == rhs.f) && (lhs.indices == rhs.indices);
-        }
-
-        return lhs is null && rhs is null;
-        
-    }
-
-    public static bool operator !=(AStarNode lhs, AStarNode rhs) => !(lhs == rhs);
-
-    public static bool operator <(AStarNode lhs, AStarNode rhs) => lhs.f < rhs.f;
-
-    public static bool operator >(AStarNode lhs, AStarNode rhs) => lhs.f > rhs.f;
-
-    public static bool operator <=(AStarNode lhs, AStarNode rhs) => lhs.f <= rhs.f;
-
-    public static bool operator >=(AStarNode lhs, AStarNode rhs) => lhs.f >= rhs.f;
-
-    public int CompareTo(AStarNode other)
-    {
-        return this == other ? 0 : (this < other ? -1 : 1);
-    }
-}
-
+/// <summary>
+/// Main class for A* algorithm
+/// </summary>
 public class AStar : MonoBehaviour
 {
-    public const float sqrt2 = 1.414f;
+    public const float sqrt2 = 1.414f; //Save time by storing approximation of the square root of 2
+
+    //Representations of each direction in index form
     public static Vector3Int constNorth = Vector3Int.forward;
     public static Vector3Int constSouth = -Vector3Int.forward;
     public static Vector3Int constEast = Vector3Int.right;
     public static Vector3Int constWest = -Vector3Int.right;
     public static Vector3Int constUndefined = Vector3Int.zero;
 
-    const int stairCost = 5;
-    static PriorityQueue<AStarNode> open;
-    static PriorityQueue<AStarNode> closed;
-
+    const int stairCost = 5;    //Cost for A* to create stairs, disuades algorithm from needlessly creating stairs
+    static PriorityQueue<AStarNode> open;   //Open nodes, not fully explored
+    static PriorityQueue<AStarNode> closed; //Closed nodes, fully explored
+    
+    /// <summary>
+    /// Main function that runs A* algorithm
+    /// </summary>
+    /// <param name="startIndex">Index to start A* at</param>
+    /// <param name="goalIndex">Index to end A* at</param>
+    /// <param name="goalRoom">Reference to the room containing the goalIndex (in case we reach a different cell within the room sooner)
+    /// This may happen if the actual closest cell is already taken up by another hallway or room.</param>
+    /// <param name="grid">Reference to grid</param>
+    /// <returns>Stack of AStarNodes that represents the correct path.</returns>
+    /// <exception cref="Exception">Make sure of certainties like goal index existing</exception>
     public static Stack<AStarNode> Run(Vector3Int startIndex, Vector3Int goalIndex, Room goalRoom, Grid grid)
     {
-        if (!grid.IsValidCell(goalIndex))
+        if (!grid.IsValidCell(goalIndex)) //Sanity Check
         {
             throw new Exception("goalIndex is an invalid cell");
         }
-
+         
         open = new();
         closed = new();
 
         //Add start node to open list
         open.Push(new AStarNode(startIndex, 0, FindH(startIndex, goalIndex)));  //Parent is null since it is start node
 
+        //Repeat until the open list is empty
         while (!open.Empty())
         {
+            //Take next open node with shortest path and remove from open
             AStarNode current = open.Top();
             open.Pop();
 
-            Vector3Int lastDirection = constUndefined;
+            Vector3Int lastDirection = constUndefined;  //Initialize
             
+            //Need last direction to make sure algorithm does not try and check backwards
+            //Fun fact, without this, the stairs start spawning on top of eachother making impossible hallways to traverse
             if(current.parent != null)
             {
                 lastDirection = DirectionCameFrom(current.parent.indices, current.indices);
@@ -110,17 +81,20 @@ public class AStar : MonoBehaviour
             {
                 Stack<AStarNode> result;
 
+                //Make sure last direction wasn't North so we don't go backwards
                 if(lastDirection != constNorth)
                 {
                     //Get index of cell to the north of the current cell
                     Vector3Int north = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z + 1);
-                    result = CheckCell(current, north, goalIndex, goalRoom, grid);
+                    result = CheckCell(current, north, goalIndex, goalRoom, grid);  //Check cell for solution and add adjacent cells
                     if (result != null)
                     {
+                        //If result != null, we have found the solution
                         return result;
                     }
                 }
 
+                //Subsequent if statements follow same format as above for constNorth
                 if(lastDirection != constSouth)
                 {
                     Vector3Int south = new Vector3Int(current.indices.x, current.indices.y + y, current.indices.z - 1);
@@ -159,6 +133,12 @@ public class AStar : MonoBehaviour
         return null;    //AStar failed to find a path if open is ever empty and we haven't already returned
     }
 
+    /// <summary>
+    /// Calculate H (distance from current to goal) of current index
+    /// </summary>
+    /// <param name="currentIndex">Index of current cell</param>
+    /// <param name="goalIndex">Index of goal cell</param>
+    /// <returns>H value Manhattan Distance of current cell</returns>
     static float FindH(Vector3Int currentIndex, Vector3Int goalIndex)
     {
         //The heuristic here is extracted so we can change it if we want
@@ -167,6 +147,16 @@ public class AStar : MonoBehaviour
         return (Mathf.Abs(currentIndex.x - goalIndex.x) + Mathf.Abs(currentIndex.y - goalIndex.y) + Mathf.Abs(currentIndex.z - goalIndex.z)) * 1.001f;
     }
 
+    /// <summary>
+    /// Check if we've reached the end of the A* path and return solution if so.
+    /// Otherwise, add relevant nodes to open and run steps.
+    /// </summary>
+    /// <param name="current">Current AStarNode being checked</param>
+    /// <param name="nextIndex">Index of cell being checked</param>
+    /// <param name="goalIndex">Index of goal</param>
+    /// <param name="goalRoom">Reference to room containing goal cell</param>
+    /// <param name="grid">Reference to grid</param>
+    /// <returns>Return entire path to this point</returns>
     static Stack<AStarNode> CheckCell(AStarNode current, Vector3Int nextIndex, Vector3Int goalIndex, Room goalRoom, Grid grid)
     {
         //If the cell is within the bounds of the grid
@@ -255,7 +245,12 @@ public class AStar : MonoBehaviour
         return null;    //Returns null if not an ending node
     }
 
-    //Accepts the node that is adjacent to the goal node
+    /// <summary>
+    /// Loops through parents of subsequent AStarNodes to find path to start.
+    /// Accepts the node that is adjacent to the goal node.
+    /// </summary>
+    /// <param name="adjecentEnd">Node that is adjacent to a cell in the goal room but NOT a cell in the room</param>
+    /// <returns>A Stack containing the path of AStarNodes between the start and goal</returns>
     static Stack<AStarNode> TraceBackPath(AStarNode adjecentEnd)
     {
         Stack<AStarNode> path = new Stack<AStarNode>();
@@ -272,7 +267,12 @@ public class AStar : MonoBehaviour
         return path;
     }
 
-    //Traces back and returns true if passed index appears in the path
+    /// <summary>
+    /// Traces back and returns true if passed index appears in the path
+    /// </summary>
+    /// <param name="index">Index to check</param>
+    /// <param name="currentNode">Current AStarNode (used to trace back through parents)</param>
+    /// <returns>Whether or not the given index is in the path.</returns>
     static bool IndexInPath(Vector3Int index, AStarNode currentNode)
     {
         AStarNode current = currentNode;
@@ -291,32 +291,43 @@ public class AStar : MonoBehaviour
         return false;
     }
 
-    //Return the direction the current path just came from, prevent overlap by going backwards on staircases
+    /// <summary>
+    /// Return the direction the current path just came from.  Mainly used to prevent overlap by going backwards on staircases.
+    /// It is assumed that the passed indices are adjacent in the four cardinal directions, not vertically or diagonally.
+    /// Vertical or diagonal differences may have undefined or unexpected results.
+    /// </summary>
+    /// <param name="parentIndices">Index of parent node before current node</param>
+    /// <param name="currentIndices">Index of current node to check</param>
+    /// <returns></returns>
     static Vector3Int DirectionCameFrom(Vector3Int parentIndices, Vector3Int currentIndices)
     {
-        if(parentIndices != null && currentIndices != null)
+        if(parentIndices == null || currentIndices == null) //Sanity Check
         {
-            Vector3Int diff = currentIndices - parentIndices;
+            Debug.LogError("Passes indices are null");
+            return constUndefined;
+        }
 
-            if (diff.z > 0)
-            {
-                return constSouth;
-            }
+        //Check which direction the differnce is and return that direction
+        Vector3Int diff = currentIndices - parentIndices;
 
-            if (diff.z < 0)
-            {
-                return constNorth;
-            }
+        if (diff.z > 0)
+        {
+            return constSouth;
+        }
 
-            if (diff.x > 0)
-            {
-                return constWest;
-            }
+        if (diff.z < 0)
+        {
+            return constNorth;
+        }
 
-            if (diff.x < 0)
-            {
-                return constEast;
-            }
+        if (diff.x > 0)
+        {
+            return constWest;
+        }
+
+        if (diff.x < 0)
+        {
+            return constEast;
         }
 
         //If x and y are equal, we are at the same node as the last step, haven't moved
