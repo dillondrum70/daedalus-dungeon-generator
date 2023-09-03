@@ -1,0 +1,21 @@
+{
+  "name": "com.dillon-drummond.daedalus-dungeon-generator",
+  "version": "1.0.0",
+  "displayName": "Daedalus Dungeon Generator",
+  "description": "A 3D dungeon generator tool using A* and Delaunay Tetrahedralization.",
+  "unity": "2021.3",
+  "unityRelease": "8f1",
+  "documentationUrl": "https://example.com/",
+  "changelogUrl": "https://example.com/changelog.html",
+  "licensesUrl": "https://example.com/licensing.html",
+  "keywords": [
+    "keyword1",
+    "keyword2",
+    "keyword3"
+  ],
+  "author": {
+    "name": "Unity",
+    "email": "unity@example.com",
+    "url": "https://www.unity3d.com"
+  }
+}

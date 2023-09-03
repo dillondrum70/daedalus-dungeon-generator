@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.dillon-drummond.daedalus-dungeon-generator": {
+      "version": "file:com.dillon-drummond.daedalus-dungeon-generator",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.unity.burst": {
       "version": "1.7.3",
       "depth": 1,

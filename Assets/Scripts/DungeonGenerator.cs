@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
+using UnityEngine.Events;
 
 
 /// <summary>
@@ -60,11 +61,6 @@ public class DungeonGenerator : MonoBehaviour
     [Tooltip("Display debug logs for algorithm time.")]
     [SerializeField] bool displayAlgorithmTime = true;
 
-[Header("Gameplay")]
-    [SerializeField] GameObject playerPrefab;
-    Camera orbitCamera;
-    Camera playerCamera;
-
     [Tooltip("Adds (<this variable> * number of hallways excluded from MST) hallways to final graph after minimum spanning tree determined.\n" +
         "Adds some freedom of choice for player so there is more than one path between each room.")]
     [SerializeField] float extraHallwaysFactor = .5f;
@@ -89,6 +85,11 @@ public class DungeonGenerator : MonoBehaviour
     //This is an adjacency list of a directed graph (directed so we don't try to make duplicate hallways.
     Dictionary<Room, List<Room>> roomMap = new Dictionary<Room, List<Room>>();
 
+    public UnityEvent onDungeonClear;
+    public UnityEvent onDungeonGenerate;
+
+    public List<Room> GetRooms() { return rooms; }
+
     private void Start()
     {
         //Grid component should be on the same object as the DungeonGenerator component
@@ -96,9 +97,6 @@ public class DungeonGenerator : MonoBehaviour
 
         //Initialize grid with given dimensions of individual cells and dimensions of overall grid
         grid.InitGrid(cellDimensions, gridDimensions);
-
-        //DEMO: Used to demo the plugin
-        orbitCamera = FindObjectOfType<Camera>();
     }
 
     /// <summary>
@@ -112,29 +110,6 @@ public class DungeonGenerator : MonoBehaviour
             Clear();
             Generate();
         }
-
-        //Toggle between orbiting camera and first person view
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            if(playerCamera) //Sanity check
-            {
-                //Toggle cameras
-                if(orbitCamera.enabled)
-                {
-                    orbitCamera.enabled = false;
-                    playerCamera.enabled = true;
-                }
-                else
-                {
-                    orbitCamera.enabled = true;
-                    playerCamera.enabled = false;
-                }
-            }
-            else
-            {
-                Debug.LogWarning("Could not get player camera");
-            }
-        }
     }
 
     /// <summary>
@@ -143,11 +118,10 @@ public class DungeonGenerator : MonoBehaviour
     /// </summary>
     void Clear()
     {
-        //Empty all arrays and delete all current rooms
-        if (playerCamera)
-        {
-            Destroy(playerCamera.transform.parent.gameObject);
-        }
+        //Run event to call external functions
+        onDungeonClear.Invoke();
+
+        //Deal with class members
         tetrahedrons.Clear();
         rooms.Clear();
         totalEdges.Clear();
@@ -234,11 +208,8 @@ public class DungeonGenerator : MonoBehaviour
         //Place walls in between rooms and hallways (keeps hallways and rooms from having 
         PlaceWalls();
 
-        //DEMO: Create a player inside the first cell of the first room
-        GameObject player = Instantiate(playerPrefab, rooms[0].cells[0].center, Quaternion.identity, null);
-        player.transform.localScale = Vector3.one;
-        playerCamera = player.transform.Find("Main Camera").GetComponent<Camera>();
-        player.GetComponent<PlayerMovement>().PlayerStart();
+        //Use event to call external functions after dungeon is generated
+        onDungeonGenerate.Invoke();
 
         //Display total time for algorithm
         if(displayAlgorithmTime)

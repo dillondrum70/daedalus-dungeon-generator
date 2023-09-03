@@ -278,6 +278,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feac98380aa3aae4c8a9c8e29ab0a026, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cellDimensions: {x: 0, y: 0, z: 0}
+  gridDimensions: {x: 0, y: 0, z: 0}
   drawGrid: 0
 --- !u!4 &1459068378
 Transform:
@@ -325,8 +327,58 @@ MonoBehaviour:
   noTorchWall: {fileID: 6965430385258804789, guid: 4d7b2d54f37645f48b7fa54cb665ce5e, type: 3}
   percentEnableLights: 0.2
   displayAlgorithmTime: 1
-  playerPrefab: {fileID: 4966452792278149619, guid: 1a611992acb32eb4daf7008a4154e162, type: 3}
   extraHallwaysFactor: 0.3
+  onDungeonClear:
+    m_PersistentCalls:
+      m_Calls: []
+  onDungeonGenerate:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!1 &1624145800
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1624145802}
+  - component: {fileID: 1624145801}
+  m_Layer: 0
+  m_Name: DemoManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1624145801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624145800}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba529450c7fd9d74c8b254efd609fb6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerPrefab: {fileID: 4966452792278149619, guid: 1a611992acb32eb4daf7008a4154e162, type: 3}
+--- !u!4 &1624145802
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624145800}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 127.82201, y: -58.90091, z: -129.22002}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 5
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1940476237
 GameObject:
   m_ObjectHideFlags: 0
