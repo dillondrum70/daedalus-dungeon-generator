@@ -17,10 +17,20 @@ public class DemoClass : MonoBehaviour
     private void Start()
     {
         orbitCamera = FindObjectOfType<Camera>();
+    }
 
+    private void OnEnable()
+    {
         dungeonGenerator = FindObjectOfType<DungeonGenerator>();
+
         dungeonGenerator.onDungeonClear.AddListener(OnDungeonClear);
         dungeonGenerator.onDungeonGenerate.AddListener(OnDungeonGenerate);
+    }
+
+    private void OnDisable()
+    {
+        dungeonGenerator.onDungeonClear.RemoveListener(OnDungeonClear);
+        dungeonGenerator.onDungeonGenerate.RemoveListener(OnDungeonGenerate);
     }
 
     /// <summary>

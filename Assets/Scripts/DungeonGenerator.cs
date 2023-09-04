@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -12,20 +14,23 @@ using UnityEngine.Events;
 /// ties together all the other components of this package.
 /// Entry Point: Generate()
 /// </summary>
+[ExecuteAlways]
+[RequireComponent(typeof(Grid))]
 public class DungeonGenerator : MonoBehaviour
 {
-    [Tooltip("Stores all cells in dungeon.")]
+    //Stores all cells in dungeon.
     Grid grid;
+    [SerializeField] Transform dungeonParent;
 
 [Header("Cell Dimensions")]
     [Tooltip("Dimensions of a singular cell in Unity units.\n" +
         "Width, Height, and Depth respectively in X, Y, and Z components.")]
-    public Vector3 cellDimensions = new Vector3(2, 2, 2);
+    public Vector3 cellDimensions = new Vector3(5, 5, 5);
 
 [Header("Grid Dimensions")]
     [Tooltip("Dimensions of the entire grid in terms of cells.\n" +
         "Width, Height, and Depth respectively in X, Y, and Z components.")]
-    public Vector3 gridDimensions = new Vector3(10, 10, 10);
+    public Vector3 gridDimensions = new Vector3(20, 10, 20);
 
 [Header("Room Parameters")]
     [Tooltip("Prefab of room cell.")]
@@ -92,26 +97,77 @@ public class DungeonGenerator : MonoBehaviour
 
     private void Start()
     {
-        //Grid component should be on the same object as the DungeonGenerator component
-        grid = GetComponent<Grid>();
+        Setup();
 
-        //Initialize grid with given dimensions of individual cells and dimensions of overall grid
-        grid.InitGrid(cellDimensions, gridDimensions);
+        Clear();
     }
 
     /// <summary>
-    /// DEMO: Demonstrates DungeonGenerator
+    /// When destroying the DungeonGenerator, destroy the dungeon as well
     /// </summary>
-    private void Update()
+    private void OnDestroy()
     {
-        
+        Clear();
+    }
+
+    void Setup()
+    {
+        //Grid component should be on the same object as the DungeonGenerator component
+        if(grid == null)
+        {
+            grid = GetComponent<Grid>();
+        }
+
+        /*
+         * If can not find parents, create new ones
+         */
+        if (dungeonParent == null)
+        {
+            GameObject dObject = GameObject.Find("Dungeon");
+            if (dObject != null)
+            {
+                dungeonParent = dObject.transform;
+            }
+            else
+            {
+                dungeonParent = (new GameObject("Dungeon")).transform;
+            }
+        }
+
+        if (roomParent == null)
+        {
+            GameObject rObject = GameObject.Find("Rooms");
+            if (rObject != null)
+            {
+                roomParent = rObject.transform;
+            }
+            else
+            {
+                roomParent = (new GameObject("Rooms")).transform;
+                roomParent.parent = dungeonParent;
+            }
+        }
+
+        if (pathParent == null)
+        {
+            GameObject pObject = GameObject.Find("Paths");
+            if (pObject != null)
+            {
+                pathParent = pObject.transform;
+            }
+            else
+            {
+                pathParent = (new GameObject("Paths")).transform;
+                pathParent.parent = dungeonParent;
+            }
+        }
     }
 
     /// <summary>
     /// Clears all lists, dictionaries, and other members of DungeonGenerator except component references.
     /// Reinitializes grid component.
     /// </summary>
-    void Clear()
+    public void Clear()
     {
         //Run event to call external functions
         onDungeonClear.Invoke();
@@ -121,17 +177,43 @@ public class DungeonGenerator : MonoBehaviour
         rooms.Clear();
         totalEdges.Clear();
         roomMap.Clear();
-        foreach (Transform child in roomParent)
+
+        Setup();
+
+        if (roomParent != null)
         {
-            Destroy(child.gameObject);
+            for (int i = roomParent.childCount - 1; i >= 0; i--)
+            {
+                AlwaysDestroy(roomParent.GetChild(i).gameObject);
+            }
         }
-        foreach (Transform child in pathParent)
+
+        if (pathParent != null)
         {
-            Destroy(child.gameObject);
+            for (int i = pathParent.childCount - 1; i >= 0; i--)
+            {
+                AlwaysDestroy(pathParent.GetChild(i).gameObject);
+            }
         }
 
         //Initialize fresh, empty grid
         grid.InitGrid(cellDimensions, gridDimensions);
+    }
+
+    void AlwaysDestroy(UnityEngine.Object obj)
+    {
+#if UNITY_EDITOR
+        if (Application.IsPlaying(gameObject))
+        {
+            Destroy(obj);
+        }
+        else
+        {
+            DestroyImmediate(obj);
+        }
+#else
+                Destroy(child.gameObject);
+#endif
     }
 
     /// <summary>
@@ -718,7 +800,7 @@ public class DungeonGenerator : MonoBehaviour
     /// <param name="adjacentIndex">Index of cell adjacent to current cell</param>
     private void RoomWall(Vector3Int currentIndex, Vector3Int adjacentIndex)
     {
-        if(grid.IsValidCell(adjacentIndex)) //Check if adjacent cell exists
+        if (grid.IsValidCell(adjacentIndex)) //Check if adjacent cell exists
         {
             Cell adjacentCell = grid.GetCell(adjacentIndex);
 
