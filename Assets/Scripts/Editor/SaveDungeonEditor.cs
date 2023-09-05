@@ -13,7 +13,7 @@ public class EditorProperties : ScriptableObject
 {
     public string _savePath = "";
     public string _fileName = "";
-    public GameObject _dungeonParent = null;
+    public GameObject _dungeonParent;
 }
 
 public class SaveDungeonEditor : EditorWindow
@@ -25,15 +25,17 @@ public class SaveDungeonEditor : EditorWindow
     SerializedProperty fileName;
     SerializedProperty dungeonParent;
 
+    //GameObject dungeonParent;
+
     DungeonGenerator generator;
 
     const string DUNGEON_GAMEOBJECT_NAME = "DungeonManager";
+    const string DUNGEON_PARENT_NAME = "Dungeon";
 
     private void OnEnable()
     {
         AssemblyReloadEvents.afterAssemblyReload += Reload;
-        
-        
+
         Reload();
     }
 
@@ -53,7 +55,9 @@ public class SaveDungeonEditor : EditorWindow
         fileName = editorObject.FindProperty("_fileName");
         dungeonParent = editorObject.FindProperty("_dungeonParent");
 
-        dungeonParent.objectReferenceValue = (UnityEngine.Object)(GameObject.Find(DUNGEON_GAMEOBJECT_NAME));
+        dungeonParent.objectReferenceValue = GameObject.Find(DUNGEON_PARENT_NAME);
+
+        //dungeonParent = GameObject.Find(DUNGEON_PARENT_NAME);
     }
 
     [MenuItem("Tools/Dungeon Editor")]
@@ -101,12 +105,12 @@ public class SaveDungeonEditor : EditorWindow
             }
         }
 
-        EditorGUILayout.PropertyField(savePath, new GUIContent("Save Path"));
+        EditorGUILayout.LabelField("Save Path", savePath.stringValue, EditorStyles.wordWrappedLabel);
         
         if (GUILayout.Button("Choose Folder"))
         {
             string path = EditorUtility.OpenFolderPanel("Choose Save Path", "", "");
-            savePath.stringValue = path;
+            savePath.stringValue = path + "/";
         }
         
         EditorGUILayout.PropertyField(fileName, new GUIContent("File Name"));
@@ -121,8 +125,8 @@ public class SaveDungeonEditor : EditorWindow
 
     private void SavePrefab()
     {
-        PrefabUtility.SaveAsPrefabAsset((GameObject)dungeonParent.objectReferenceValue,
-            savePath.stringValue + "/" + fileName.stringValue + ".prefab",
+        PrefabUtility.SaveAsPrefabAsset(dungeonParent.objectReferenceValue.GameObject(),
+            savePath.stringValue + fileName.stringValue + ".prefab",
             out bool success);
 
         if(!success)
