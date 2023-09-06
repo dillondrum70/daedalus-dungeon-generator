@@ -19,7 +19,7 @@ public enum Directions
 /// <summary>
 /// Main class for A* algorithm
 /// </summary>
-public class AStar : MonoBehaviour
+public static class AStar
 {
     public const float sqrt2 = 1.414f; //Save time by storing approximation of the square root of 2
 
