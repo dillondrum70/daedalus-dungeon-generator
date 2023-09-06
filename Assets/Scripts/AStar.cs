@@ -21,8 +21,6 @@ public enum Directions
 /// </summary>
 public static class AStar
 {
-    public const float sqrt2 = 1.414f; //Save time by storing approximation of the square root of 2
-
     //Representations of each direction in index form
     public static Vector3Int constNorth = Vector3Int.forward;
     public static Vector3Int constSouth = -Vector3Int.forward;
