@@ -692,6 +692,8 @@ public class DungeonGenerator : MonoBehaviour
                     //Check this node's cell type to determine what walls should be added
                     CellTypes type = grid.GetCell(currentIndex).cellType;
 
+                    PlacePillar(currentIndex);
+
                     switch(type)
                     {
                         case CellTypes.ROOM:
@@ -708,7 +710,7 @@ public class DungeonGenerator : MonoBehaviour
                             {
                                 RoomWall(currentIndex, currentIndex + AStar.constWest);
                             }
-                            PlacePillar(currentIndex);
+                            //PlacePillar(currentIndex);
                             break;
 
                         case CellTypes.HALLWAY:
@@ -723,7 +725,7 @@ public class DungeonGenerator : MonoBehaviour
                             {
                                 HallWall(currentIndex, currentIndex + AStar.constWest);
                             }
-                            PlacePillar(currentIndex);
+                            //PlacePillar(currentIndex);
                             break;
                         case CellTypes.STAIRSPACE:
                             StairSpaceWall(currentIndex, currentIndex + AStar.constNorth);
@@ -737,7 +739,7 @@ public class DungeonGenerator : MonoBehaviour
                             {
                                 StairSpaceWall(currentIndex, currentIndex + AStar.constWest);
                             }
-                            PlacePillar(currentIndex);
+                            //PlacePillar(currentIndex);
                             break;
                         case CellTypes.STAIRS:
                             StairWall(currentIndex, currentIndex + AStar.constNorth);
@@ -751,7 +753,7 @@ public class DungeonGenerator : MonoBehaviour
                             {
                                 StairWall(currentIndex, currentIndex + AStar.constWest);
                             }
-                            PlacePillar(currentIndex);
+                            //PlacePillar(currentIndex);
                             break;
                         case CellTypes.NONE:
                             EmptyCellWall(currentIndex, currentIndex + AStar.constNorth);
@@ -769,22 +771,42 @@ public class DungeonGenerator : MonoBehaviour
     /// <param name="currentIndex">Index of cell in which to place pillars</param>
     private void PlacePillar(Vector3Int currentIndex)
     {
-        Transform trans1 = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.identity, roomParent).transform;
-        trans1.localScale = cellDimensions;
+        //Transform trans1 = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.identity, roomParent).transform;
+        //trans1.localScale = cellDimensions;
 
-        if ((!grid.IsValidCell(currentIndex + AStar.constSouth + AStar.constEast) || grid.IsCellEmpty(currentIndex + AStar.constSouth + AStar.constEast)))
+        CellTypes type = grid.GetCell(currentIndex).cellType;
+
+        //Place North East corner
+        if (type != CellTypes.NONE //Cell is filled
+            || (grid.IsValidCell(currentIndex + AStar.constNorth + AStar.constEast) && !grid.IsCellEmpty(currentIndex + AStar.constNorth + AStar.constEast)) //Corner is valid and filled
+            || (grid.IsValidCell(currentIndex + AStar.constEast) && !grid.IsCellEmpty(currentIndex + AStar.constEast)) //East cell is valid and filled
+            || (grid.IsValidCell(currentIndex + AStar.constNorth) && !grid.IsCellEmpty(currentIndex + AStar.constNorth))) //North cell is valid and filled
         {
-            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 90, 0)), roomParent).transform;
+            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 0, 0)), roomParent).transform;
             trans.localScale = cellDimensions;
         }
 
-        if ((!grid.IsValidCell(currentIndex + AStar.constSouth + AStar.constWest) || grid.IsCellEmpty(currentIndex + AStar.constSouth + AStar.constWest)))
+        //Place South West corner
+        if ((type != CellTypes.NONE && (!grid.IsValidCell(currentIndex + AStar.constWest) || !grid.IsValidCell(currentIndex + AStar.constSouth) || !grid.IsValidCell(currentIndex + AStar.constWest + AStar.constSouth))) //Cell is filled and south or west or both are not valid (edge of map)
+            || 
+            (type == CellTypes.NONE //If cell is empty
+            && ((!grid.IsValidCell(currentIndex + AStar.constSouth) && (grid.IsValidCell(currentIndex + AStar.constWest) && !grid.IsCellEmpty(currentIndex + AStar.constWest))) //South is invalid (on edge) and West is valid and filled
+            || (!grid.IsValidCell(currentIndex + AStar.constWest) && (grid.IsValidCell(currentIndex + AStar.constSouth) && !grid.IsCellEmpty(currentIndex + AStar.constSouth)))))) //West is invalid (on edge) and South is valid and filled 
         {
             Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 180, 0)), roomParent).transform;
             trans.localScale = cellDimensions;
         }
 
-        if ((!grid.IsValidCell(currentIndex + AStar.constNorth + AStar.constWest) || grid.IsCellEmpty(currentIndex + AStar.constNorth + AStar.constWest)))
+        //Place south east corner
+        if (type != CellTypes.NONE && !grid.IsValidCell(currentIndex + AStar.constSouth + AStar.constEast) && !grid.IsValidCell(currentIndex + AStar.constSouth) && !grid.IsValidCell(currentIndex + AStar.constEast))
+        {
+            Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 90, 0)), roomParent).transform;
+            trans.localScale = cellDimensions;
+        }
+
+        //Place north west corner
+
+        if (type != CellTypes.NONE && !grid.IsValidCell(currentIndex + AStar.constNorth + AStar.constWest) && !grid.IsValidCell(currentIndex + AStar.constNorth) && !grid.IsValidCell(currentIndex + AStar.constWest))
         {
             Transform trans = Instantiate(pillarPrefab, grid.GetCenterByIndices(currentIndex), Quaternion.Euler(new Vector3(0, 270, 0)), roomParent).transform;
             trans.localScale = cellDimensions;
