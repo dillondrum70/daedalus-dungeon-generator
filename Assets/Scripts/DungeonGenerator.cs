@@ -56,8 +56,8 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] GameObject pillarPrefab; //We store this prefab to add the pillar to the southeast corner of rooms it is not automatically added to from a wall
     [SerializeField] GameObject archPrefab; //Add between cells of the same type where a wall was not added
     //[SerializeField] GameObject archPillarPrefab;   //For rooms primarily, only usedfor north checks so extra pillars aren't added where they already exist
-    [SerializeField] GameObject wallFaceOutPrefab;  //For empty cells that are filling in walls of other non-empty cells
-    [SerializeField] GameObject noTorchWall;    //For when an empty cell puts a wall on a staircase
+    //[SerializeField] GameObject wallFaceOutPrefab;  //For empty cells that are filling in walls of other non-empty cells
+    //[SerializeField] GameObject noTorchWall;    //For when an empty cell puts a wall on a staircase
 
 [Header("Other")]
     [Tooltip("Percentage chance [0, 1] for lights being placed on a new wall.")]
@@ -869,7 +869,7 @@ public class DungeonGenerator : MonoBehaviour
                 trans.localScale = cellDimensions;
 
                 //Random check to enable lights
-                if(UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+                if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
                     trans.gameObject.GetComponent<StartLight>()?.EnableLight();
                 }
@@ -883,7 +883,8 @@ public class DungeonGenerator : MonoBehaviour
             //Check to enable light
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
-                trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                StartLight light = trans.gameObject.GetComponent<StartLight>();
+                light?.EnableLight();
             }
         }
     }
@@ -1137,13 +1138,13 @@ public class DungeonGenerator : MonoBehaviour
         }
         else //If next index is not valid, it is empty and we need a wall
         {
-            Transform trans = Instantiate(noTorchWall, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
+            Transform trans = Instantiate(wallPrefab, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
             trans.localScale = cellDimensions;
 
-            if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
-            {
-                trans.gameObject.GetComponent<StartLight>()?.EnableLight();
-            }
+            //if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+            //{
+            //    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+            //}
         }
     }
 
@@ -1166,11 +1167,11 @@ public class DungeonGenerator : MonoBehaviour
                 case CellTypes.ROOM:
                 case CellTypes.HALLWAY:
                 case CellTypes.STAIRSPACE:
-                    spawnObject = wallFaceOutPrefab;
+                    spawnObject = wallPrefab;
                     break;
 
                 case CellTypes.STAIRS:
-                    spawnObject = noTorchWall;
+                    spawnObject = wallPrefab;
                     break;
 
                 //Do nothing
@@ -1197,9 +1198,13 @@ public class DungeonGenerator : MonoBehaviour
                 Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
                 trans.localScale = cellDimensions;
 
-                if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+                if (adjacentCell.cellType != CellTypes.STAIRS 
+                    && UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
-                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                    StartLight light = trans.gameObject.GetComponent<StartLight>();
+                    light?.EnableLight();
+
+                    light?.GetLight().transform.Rotate(new Vector3(0, 180f, 0));
                 }
             }
         }

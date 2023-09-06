@@ -4,10 +4,12 @@ using UnityEngine;
 
 public class StartLight : MonoBehaviour
 {
-    [SerializeField] GameObject torch;
+    [SerializeField] GameObject light;
+
+    public GameObject GetLight() { return light; }
 
     public void EnableLight()
     {
-        torch.SetActive(true);
+        light.SetActive(true);
     }
 }
