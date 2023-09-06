@@ -7,6 +7,13 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 
+[Flags]
+public enum DebugMode
+{
+    MIN_SPAN_TREE = 1,
+    ROOM_MAP = 2,
+    TETRAHEDRALIZATION = 4
+}
 
 /// <summary>
 /// DungeonGenerator Component:
@@ -22,7 +29,13 @@ public class DungeonGenerator : MonoBehaviour
     Grid grid;
     [SerializeField] Transform dungeonParent;
 
-[Header("Cell Dimensions")]
+[Header("Debug Controls")]
+    [Tooltip("Display debug logs for algorithm time.")]
+    [SerializeField] bool displayAlgorithmTime = true;
+    [Tooltip("Sets what is drawn for debug in OnDrawGizmos().")]
+    [SerializeField] DebugMode debugMode;
+
+    [Header("Cell Dimensions")]
     [Tooltip("Dimensions of a singular cell in Unity units.\n" +
         "Width, Height, and Depth respectively in X, Y, and Z components.")]
     public Vector3 cellDimensions = new Vector3(5, 5, 5);
@@ -63,8 +76,6 @@ public class DungeonGenerator : MonoBehaviour
     [Tooltip("Percentage chance [0, 1] for lights being placed on a new wall.")]
     [Range(0, 1)]
     [SerializeField] float percentEnableLights = .2f;
-    [Tooltip("Display debug logs for algorithm time.")]
-    [SerializeField] bool displayAlgorithmTime = true;
 
     [Tooltip("Adds (<this variable> * number of hallways excluded from MST) hallways to final graph after minimum spanning tree determined.\n" +
         "Adds some freedom of choice for player so there is more than one path between each room.")]
@@ -81,6 +92,9 @@ public class DungeonGenerator : MonoBehaviour
 
     //Will store adjacency list of edges in tetrahedralization excluding duplicates
     Dictionary<Vector3, List<Edge>> totalEdges = new Dictionary<Vector3, List<Edge>>();
+
+    //Stores minimum spanning tree of total edges
+    List<Edge> minSpanTree = new();
 
     //Map of all rooms and the rooms they are connected to.
     //i.e. 1 : {2, 4} means room 1 is conencted via hallway to room 2 and room 4
@@ -171,6 +185,7 @@ public class DungeonGenerator : MonoBehaviour
         tetrahedrons.Clear();
         rooms.Clear();
         totalEdges.Clear();
+        minSpanTree.Clear();
         roomMap.Clear();
 
         Setup();
@@ -251,7 +266,7 @@ public class DungeonGenerator : MonoBehaviour
         GenerateRandomRooms();
 
         //Delaunay Tetrahedralization to create streamlined map
-        CreateConnectedMap();
+        CreateConnectedMap(ref totalEdges, ref rooms);
 
         //Check that the dictionary of all edges in the delaunay tetrahedralization actually has edges
         Vector3 start = Vector3.zero;
@@ -268,17 +283,18 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         //Create MST
-        List<Edge> minSpanTree = MinimumSpanningTree.DerriveMST(out List<Edge> excluded, start, totalEdges);
+        minSpanTree = MinimumSpanningTree.DerriveMST(out List<Edge> excluded, start, totalEdges);
 
+        List<Edge> expandedTree = new();
         //Add hallways randomly from the list of hallways not in the minimum spanning tree
-        AddRandomHallways(ref minSpanTree, ref excluded);
+        AddRandomHallways(minSpanTree, ref excluded, out expandedTree);
 
         //Turn the list of edges into an adjacency list of rooms
-        ConvertEdgesBackToRooms(minSpanTree);
+        ConvertEdgesBackToRooms(ref expandedTree, ref rooms, out roomMap);
 
         //Create hallways between rooms using A*
         //This is the heaviest function computationally.  If you experience performance issues, this is likely the culprit.
-        CarveHallways();
+        CarveHallways(ref roomMap);
 
         //Place walls in between rooms and hallways (keeps hallways and rooms from having 
         PlaceWalls();
@@ -403,7 +419,7 @@ public class DungeonGenerator : MonoBehaviour
     /// <summary>
     /// Performs Delaunay Tetrahedralization on the list of rooms
     /// </summary>
-    void CreateConnectedMap()
+    void CreateConnectedMap(ref Dictionary<Vector3, List<Edge>> edgeMap, ref List<Room> roomList)
     {
         //Define a super tetrahedron that is guaranteed to encapsulate the entire grid
         superTetrahedron = new Tetrahedron(
@@ -418,7 +434,7 @@ public class DungeonGenerator : MonoBehaviour
 
         //Create list of points from the rooms
         List<Vector3> pointList = new List<Vector3>();
-        foreach (Room room in rooms)
+        foreach (Room room in roomList)
         {
             pointList.Add(room.center);
         }
@@ -438,7 +454,7 @@ public class DungeonGenerator : MonoBehaviour
                 List<Edge> list;
 
                 //Add the edge to the dictionary if it isn't in there already
-                if (totalEdges.TryGetValue(e.pointA, out list))
+                if (edgeMap.TryGetValue(e.pointA, out list))
                 {
                     if (!list.Contains(e))
                     {
@@ -451,11 +467,11 @@ public class DungeonGenerator : MonoBehaviour
                     //If totalEdges does not have a value at e.pointA, initialize the value and add the new KeyValuePair
                     List<Edge> newList = new();
                     newList.Add(e);
-                    totalEdges.Add(e.pointA, newList);
+                    edgeMap.Add(e.pointA, newList);
                 }
 
                 //Create a duplicate of the edge with the points reversed so we have an undirected graph
-                if (totalEdges.TryGetValue(e.pointB, out list))
+                if (edgeMap.TryGetValue(e.pointB, out list))
                 {
                     if (!list.Contains(e))
                     {
@@ -468,7 +484,7 @@ public class DungeonGenerator : MonoBehaviour
                     //If totalEdges does nto have an entry for e.pointB, create a new dictionary entry
                     List<Edge> newList = new();
                     newList.Add(new Edge(e.pointB, e.pointA));
-                    totalEdges.Add(e.pointB, newList);
+                    edgeMap.Add(e.pointB, newList);
                 }
             }
         }
@@ -479,10 +495,12 @@ public class DungeonGenerator : MonoBehaviour
     /// </summary>
     /// <param name="minSpanTree">The MST to add edges back to</param>
     /// <param name="excluded">List of edges not in minSpanTree</param>
-    void AddRandomHallways(ref List<Edge> minSpanTree, ref List<Edge> excluded)
+    /// <param name="expandedTree">Out parameter of minSpanTree with added hallways</param>
+    void AddRandomHallways(List<Edge> minSpanTree, ref List<Edge> excluded, out List<Edge> expandedTree)
     {
         //Add random number of edges from excluded to minSpanTree
         int numHalls = (int)(extraHallwaysFactor * excluded.Count);
+        expandedTree = new(minSpanTree);
 
         for (int i = 0; i < numHalls; i++)
         {
@@ -490,7 +508,7 @@ public class DungeonGenerator : MonoBehaviour
 
             //Add edge to minSpanTree and remove it from excluded, this ensures duplicate edges are not added since
             //the graph exclided + minSpanTree should not have any duplicates
-            minSpanTree.Add(excluded[i]);
+            expandedTree.Add(excluded[i]);
             excluded.RemoveAt(i);
         }
     }
@@ -500,8 +518,12 @@ public class DungeonGenerator : MonoBehaviour
     /// TODO: Optimize this
     /// </summary>
     /// <param name="finalMap">Finalized edge list that needs to be turned into a room adjacency list</param>
-    void ConvertEdgesBackToRooms(List<Edge> finalMap)
+    /// <param name="roomList">List of rooms</param>
+    /// <param name="adjacencyList">Resulting list from converting edges back into rooms</param>
+    void ConvertEdgesBackToRooms(ref List<Edge> finalMap, ref List<Room> roomList, out Dictionary<Room, List<Room>> adjacencyList)
     {
+        adjacencyList = new();
+
         //Match rooms to edges to get room map
         foreach (Edge e in finalMap)
         {
@@ -509,7 +531,7 @@ public class DungeonGenerator : MonoBehaviour
             Room room2 = null;
 
             //Go through each room and check if it matched pointA or pointB
-            foreach (Room room in rooms)
+            foreach (Room room in roomList)
             {
                 if (room.center == e.pointA)
                 {
@@ -524,16 +546,16 @@ public class DungeonGenerator : MonoBehaviour
             if (room1 != null && room2 != null) //Sanity check, rooms should exist
             {
                 //Add connected room to the value list under room1 key
-                if (roomMap.TryGetValue(room1, out List<Room> roomList))
+                if (adjacencyList.TryGetValue(room1, out List<Room> adjacentRooms)) 
                 {
-                    roomList.Add(room2);
+                    adjacentRooms.Add(room2);
                 }
                 else
                 {
                     //Adds new dictionary entry for room1
                     List<Room> newRooms = new List<Room>();
                     newRooms.Add(room2);
-                    roomMap.Add(room1, newRooms);
+                    adjacencyList.Add(room1, newRooms);
                 }
             }
         }
@@ -543,9 +565,9 @@ public class DungeonGenerator : MonoBehaviour
     /// Creates hallways and staircases between rooms, spawns in objects.
     /// TODO: Optimize this
     /// </summary>
-    void CarveHallways()
+    void CarveHallways(ref Dictionary<Room, List<Room>> adjacencyList)
     {
-        foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
+        foreach (KeyValuePair<Room, List<Room>> pair in adjacencyList)
         {
             foreach (Room room in pair.Value)
             {
@@ -1304,43 +1326,25 @@ public class DungeonGenerator : MonoBehaviour
     /// </summary>
     private void OnDrawGizmos()
     {
-        if (Application.isPlaying)
+        //TETRAHEDRALIZATION includes ROOM_MAP which includes MIN_SPAN_TREE so they are drawn in reverse
+        //This displays all edges in Delaunay Tetrahedralization including excluded edges that do not have hallways
+        if((debugMode & DebugMode.TETRAHEDRALIZATION) == DebugMode.TETRAHEDRALIZATION)
         {
+            foreach (KeyValuePair<Vector3, List<Edge>> pair in totalEdges)
+            {
+                Gizmos.color = Color.red;
+                foreach (Edge edge in pair.Value)
+                {
+                    Gizmos.DrawLine(edge.pointA, edge.pointB);
+                }
+            }
+        }
 
-            //Tetrahedron test = new Tetrahedron(Vector3.zero, Vector3.up * 4, Vector3.right, Vector3.forward);
-            //test.DrawGizmos();
-            //Gizmos.DrawSphere(test.circumSphere.center, test.circumSphere.radius);
 
-            //Triangle triangle = new Triangle(rooms[0].center, rooms[1].center, rooms[2].center);
-            //Circumsphere sphere = DelaunayTriangulation.FindCircumcenter(triangle);
-
-            //Vector3 diff = (rooms[0].center - sphere.center).normalized * sphere.radius;
-
-            //Gizmos.DrawSphere(sphere.center, sphere.radius);
-            //Gizmos.DrawLine(sphere.center, sphere.center + diff);
-            //Gizmos.DrawSphere(rooms[0].center, .1f);
-            //Gizmos.DrawSphere(sphere.center, .1f);
-
-            //Circumsphere sphere = DelaunayTriangulation.FindCircumcenter(triangles[0]);
-            //triangles[0].DrawGizmos();
-            //Gizmos.DrawSphere(sphere.center, sphere.radius);
-
-            //foreach (Tetrahedron tet in tetrahedrons)
-            //{
-            //    //Room currentRoom = pair.Key;
-            //    Gizmos.color = Color.red;
-            //    tet.DrawGizmos();
-            //}
-
-            //foreach (KeyValuePair<Vector3, List<Edge>> pair in totalEdges)
-            //{
-            //    Gizmos.color = Color.red;
-            //    foreach (Edge edge in pair.Value)
-            //    {
-            //        Gizmos.DrawLine(edge.pointA, edge.pointB);
-            //    }
-            //}
-            if(roomMap.Count > 0)
+        //ROOM_MAP draws finalized map of lines between rooms that represent hallways
+        if ((debugMode & DebugMode.ROOM_MAP) == DebugMode.ROOM_MAP)
+        {
+            if (roomMap != null && roomMap.Count > 0)
             {
                 foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
                 {
@@ -1351,37 +1355,16 @@ public class DungeonGenerator : MonoBehaviour
                     }
                 }
             }
+        }
 
-            //Gizmos.DrawSphere(superTetrahedron.circumSphere.center, superTetrahedron.circumSphere.radius);
-            //superTetrahedron.DrawGizmos();
-
-            //foreach (Tetrahedron tet in tetrahedrons)
-            //{
-            //    //Room currentRoom = pair.Key;
-            //    Gizmos.color = Color.red;
-            //    tet.DrawGizmos();
-            //    Gizmos.DrawSphere(tet.circumSphere.center, tet.circumSphere.radius);
-            //}
-
-            //foreach (Triangle tri in triangles)
-            //{
-            //    //Room currentRoom = pair.Key;
-            //    Gizmos.color = Color.red;
-            //    Gizmos.DrawLine(tri.pointA, tri.pointB);
-            //    Gizmos.DrawLine(tri.pointA, tri.pointC);
-            //    Gizmos.DrawLine(tri.pointC, tri.pointB);
-            //}
-
-            //foreach (KeyValuePair<Room, List<Room>> pair in roomMap)
-            //{
-            //    Room currentRoom = pair.Key;
-
-            //    foreach (Room connectedRoom in pair.Value)
-            //    {
-            //        Gizmos.color = Color.green;
-            //        Gizmos.DrawLine(currentRoom.cells[0].center, connectedRoom.cells[0].center);
-            //    }
-            //}
+        //MIN_SPAN_TREE draws the minimum spanning tree on top of all other debug lines
+        if ((debugMode & DebugMode.MIN_SPAN_TREE) == DebugMode.MIN_SPAN_TREE)
+        {
+            foreach (Edge edge in minSpanTree)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawLine(edge.pointA, edge.pointB);
+            }
         }
     }
 }
