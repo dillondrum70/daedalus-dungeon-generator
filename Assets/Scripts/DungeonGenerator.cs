@@ -98,8 +98,6 @@ public class DungeonGenerator : MonoBehaviour
     private void Start()
     {
         Setup();
-
-        Clear();
     }
 
     /// <summary>
