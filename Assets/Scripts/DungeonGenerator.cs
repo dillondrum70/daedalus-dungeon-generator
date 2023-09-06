@@ -82,9 +82,6 @@ public class DungeonGenerator : MonoBehaviour
     //Will store adjacency list of edges in tetrahedralization excluding duplicates
     Dictionary<Vector3, List<Edge>> totalEdges = new Dictionary<Vector3, List<Edge>>();
 
-    //Reference to the MST class
-    MinimumSpanningTree minAlgorithm = new();
-
     //Map of all rooms and the rooms they are connected to.
     //i.e. 1 : {2, 4} means room 1 is conencted via hallway to room 2 and room 4
     //This is an adjacency list of a directed graph (directed so we don't try to make duplicate hallways.
@@ -271,7 +268,7 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         //Create MST
-        List<Edge> minSpanTree = minAlgorithm.DerriveMST(out List<Edge> excluded, start, totalEdges);
+        List<Edge> minSpanTree = MinimumSpanningTree.DerriveMST(out List<Edge> excluded, start, totalEdges);
 
         //Add hallways randomly from the list of hallways not in the minimum spanning tree
         AddRandomHallways(ref minSpanTree, ref excluded);

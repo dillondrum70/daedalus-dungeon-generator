@@ -7,13 +7,8 @@ using UnityEngine.UIElements;
 /// <summary>
 /// The class that handles creating a Minimum Spanning Tree out of edges
 /// </summary>
-public class MinimumSpanningTree
+public static class MinimumSpanningTree
 {
-    HashSet<Vector3> visited = new();       //Which nodes have already been visited
-    List<Edge> solution = new();            //Stores edges of minimum spanning tree
-    //List<Edge> notSolution = new();         //Edges not in solution
-    PriorityQueue<Edge> frontier = new();   //Edges left to check, sorted shortest to longest top to bottom
-    Dictionary<Vector3, List<Edge>> adjacencyList = new();  //Edges of entire connected graph (undirected)
 
     /// <summary>
     /// Main function for running MST algorithm
@@ -22,13 +17,18 @@ public class MinimumSpanningTree
     /// <param name="start">Point to start at for MST</param>
     /// <param name="map">The map of all edges that can be used</param>
     /// <returns>A list of edges with the MST</returns>
-    public List<Edge> DerriveMST(out List<Edge> excluded, Vector3 start, Dictionary<Vector3, List<Edge>> map)
+    public static List<Edge> DerriveMST(out List<Edge> excluded, Vector3 start, Dictionary<Vector3, List<Edge>> map)
     {
-        Clear();
+        HashSet<Vector3> visited = new();       //Which nodes have already been visited
+        List<Edge> solution = new();            //Stores edges of minimum spanning tree
+                                                //List<Edge> notSolution = new();         //Edges not in solution
+        PriorityQueue<Edge> frontier = new();   //Edges left to check, sorted shortest to longest top to bottom
+        Dictionary<Vector3, List<Edge>> adjacencyList = new();  //Edges of entire connected graph (undirected)
+
         adjacencyList = new(map);   //Copy list, not reference, we may want original map later
         excluded = new();   //All edges that aren't in minSpanTree
 
-        Visit(start);
+        Visit(start, visited, adjacencyList, frontier);
 
         while(!frontier.Empty())
         {
@@ -48,7 +48,7 @@ public class MinimumSpanningTree
 
             //Log that that point has been visited
             //Our graph is undirected so we visit both points since we might be coming from pointB to pointA
-            Visit(current.pointB);
+            Visit(current.pointB, visited, adjacencyList, frontier);
         }
         //notSolution = excluded;
         return solution;
@@ -58,7 +58,7 @@ public class MinimumSpanningTree
     /// Visits a node, updates the frontier, and updates the visited function
     /// </summary>
     /// <param name="v">Point to check</param>
-    private void Visit(Vector3 v)
+    private static void Visit(Vector3 v, HashSet<Vector3> visited, Dictionary<Vector3, List<Edge>> adjacencyList, PriorityQueue<Edge> frontier)
     {
         visited.Add(v);
 
@@ -73,17 +73,6 @@ public class MinimumSpanningTree
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Clear all data structures
-    /// </summary>
-    private void Clear()
-    {
-        visited.Clear();
-        solution.Clear();
-        frontier.Clear();
-        adjacencyList.Clear();
     }
 
     //private void OnDrawGizmos()
