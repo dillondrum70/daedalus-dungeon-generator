@@ -20,9 +20,11 @@ public enum CellTypes
 public class Grid : MonoBehaviour
 {
     //Dimensions of cell in terms of width, height, and depth
+    [HideInInspector]
     public Vector3 cellDimensions = Vector3.zero;
 
     //Number of cells in each direction in terms of width, height, and depth
+    [HideInInspector]
     public Vector3 gridDimensions = Vector3.zero;
 
     //3D array of cells

@@ -7,14 +7,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 
-[Flags]
-public enum DebugMode
-{
-    MIN_SPAN_TREE = 1,
-    ROOM_MAP = 2,
-    TETRAHEDRALIZATION = 4
-}
-
 /// <summary>
 /// DungeonGenerator Component:
 /// Main component of the dungeon generator.  This is where the generator starts and
@@ -25,6 +17,14 @@ public enum DebugMode
 [RequireComponent(typeof(Grid))]
 public class DungeonGenerator : MonoBehaviour
 {
+    [Flags]
+    public enum DebugMode
+    {
+        MIN_SPAN_TREE = 1,
+        ROOM_MAP = 2,
+        TETRAHEDRALIZATION = 4
+    }
+
     //Stores all cells in dungeon.
     Grid grid;
     [SerializeField] Transform dungeonParent;
@@ -493,14 +493,14 @@ public class DungeonGenerator : MonoBehaviour
     /// <summary>
     /// Add back random hallways after the Minimum Spanning Tree is derived from tetrahedralization
     /// </summary>
-    /// <param name="minSpanTree">The MST to add edges back to</param>
+    /// <param name="mst">The minimum spanning tree to add edges back to</param>
     /// <param name="excluded">List of edges not in minSpanTree</param>
     /// <param name="expandedTree">Out parameter of minSpanTree with added hallways</param>
-    void AddRandomHallways(List<Edge> minSpanTree, ref List<Edge> excluded, out List<Edge> expandedTree)
+    void AddRandomHallways(List<Edge> mst, ref List<Edge> excluded, out List<Edge> expandedTree)
     {
         //Add random number of edges from excluded to minSpanTree
         int numHalls = (int)(extraHallwaysFactor * excluded.Count);
-        expandedTree = new(minSpanTree);
+        expandedTree = new(mst);
 
         for (int i = 0; i < numHalls; i++)
         {
