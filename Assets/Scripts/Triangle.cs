@@ -13,7 +13,7 @@ public class Triangle : IEquatable<Triangle>
     public Vector3 pointB;
     public Vector3 pointC;
 
-    //Circumspheres have a center and radius which is the same for a circumcircle so I'm just reusing the class here.
+    //Defines a center and a radius
     public Circumcircle circumCircle;
 
     public Triangle(Vector3 newPointA, Vector3 newPointB, Vector3 newPointC)
