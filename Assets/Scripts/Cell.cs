@@ -15,7 +15,7 @@ public struct Cell
     public CellTypes cellType; //Specifies that this space is a room space
     public Directions faceDirection; //Only matters for stairs
 
-    //Returns true if there is one free adjacent cell on the same y level as the passed cell
+    //Returns true if there is one free adjacent cell on the same y level as this cell
     public bool HasFreeLevelAdjacentCell(Grid grid)
     {
         //Check north
