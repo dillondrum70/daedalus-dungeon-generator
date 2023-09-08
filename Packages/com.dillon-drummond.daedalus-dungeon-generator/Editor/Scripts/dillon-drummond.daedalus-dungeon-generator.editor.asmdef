@@ -1,0 +1,16 @@
+{
+    "name": "dillon-drummond.daedalus-dungeon-generator.editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:8e5c28d8ce006b448bbc7cbfa6d05897"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
