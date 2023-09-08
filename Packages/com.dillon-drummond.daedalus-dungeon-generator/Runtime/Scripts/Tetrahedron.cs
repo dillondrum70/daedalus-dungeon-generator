@@ -57,7 +57,7 @@ public class Tetrahedron
         pointC = newPointC;
         pointD = newPointD;
 
-        circumSphere = DelaunayTriangulation.FindCircumSphereCenter(pointA, pointB, pointC, pointD);
+        circumSphere = DelaunayTetrahedralization.FindCircumSphereCenter(pointA, pointB, pointC, pointD);
     }
 
     /// <summary>
@@ -69,9 +69,9 @@ public class Tetrahedron
     {
         //if (circumSphere.radius == 0)
         //{
-        //    circumSphere = DelaunayTriangulation.FindCircumcenter(this);
+        //    circumSphere = DelaunayTetrahedralization.FindCircumcenter(this);
         //}
-        circumSphere = DelaunayTriangulation.FindCircumSphereCenter(this);
+        circumSphere = DelaunayTetrahedralization.FindCircumSphereCenter(this);
 
         if ((point - circumSphere.center).sqrMagnitude <= circumSphere.radius * circumSphere.radius)
         {

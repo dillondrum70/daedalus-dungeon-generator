@@ -25,7 +25,7 @@
         Daedalus Dungeon Generator: 3D Dungeon Generator Tool
 	    By Dillon W. Drummond
 
-	    DelaunayTriangulation.cs
+	    DelaunayTetrahedralization.cs
 
 	    ********************************************
 	    ***      Finds streamlined hallways      ***
@@ -40,7 +40,7 @@ using UnityEngine;
 /// <summary>
 /// Main class for Tetrahedralization
 /// </summary>
-public static class DelaunayTriangulation
+public static class DelaunayTetrahedralization
 {
     /// <summary>
     /// Finds circumcircle of passed triangle

@@ -456,7 +456,7 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         //Perform tetrahedralization
-        tetrahedrons = DelaunayTriangulation.Tetrahedralize(superTetrahedron, pointList);
+        tetrahedrons = DelaunayTetrahedralization.Tetrahedralize(superTetrahedron, pointList);
 
         //Count up each edge in tetrahedralization once and add a second with the points reversed so we have an adjacency list of an
         //undirected graph.  This means looping through every edge in every tetrahedron which has a lot of duplicates.

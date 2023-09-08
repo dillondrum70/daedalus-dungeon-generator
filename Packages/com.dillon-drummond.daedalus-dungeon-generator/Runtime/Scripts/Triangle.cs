@@ -58,7 +58,7 @@ public class Triangle : IEquatable<Triangle>
         pointB = newPointB;
         pointC = newPointC;
 
-        circumCircle = DelaunayTriangulation.FindCircumCircleCenter(pointA, pointB, pointC);
+        circumCircle = DelaunayTetrahedralization.FindCircumCircleCenter(pointA, pointB, pointC);
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ public class Triangle : IEquatable<Triangle>
     {
         if (circumCircle.radius == 0)
         {
-            circumCircle = DelaunayTriangulation.FindCircumCircleCenter(this);
+            circumCircle = DelaunayTetrahedralization.FindCircumCircleCenter(this);
         }
 
         if ((point - circumCircle.center).sqrMagnitude <= circumCircle.radius * circumCircle.radius)
