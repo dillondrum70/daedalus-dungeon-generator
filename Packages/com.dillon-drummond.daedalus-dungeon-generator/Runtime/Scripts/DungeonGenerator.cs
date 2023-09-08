@@ -224,9 +224,17 @@ public class DungeonGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// Generates dungeon
+    /// Call GenerateDungeon coroutine
     /// </summary>
     public void Generate()
+    {
+        StartCoroutine(GenerateDungeon());
+    }
+
+    /// <summary>
+    /// Generates dungeon
+    /// </summary>
+    public IEnumerator GenerateDungeon()
     {
         double realtime = Time.realtimeSinceStartupAsDouble; //Store initial time before algorithm starts
 
@@ -279,6 +287,8 @@ public class DungeonGenerator : MonoBehaviour
             //On an Intel 9th Gen i9, this algorithm takes ~1-5 seconds to run for reference.
             Debug.Log("Algorithm Time: " + (float)(Time.realtimeSinceStartupAsDouble - realtime) + " seconds");
         }
+
+        yield return null;
     }
 
     /// <summary>
