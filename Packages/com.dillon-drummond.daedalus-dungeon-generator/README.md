@@ -3,6 +3,9 @@
 https://github.com/dillondrum70/daedalus-dungeon-generator/wiki
 
 
+<p align="center">
+    <img src="https://github.com/dillondrum70/GPR340-Dungeon_Generation/assets/70776550/35d9cc2d-6d57-4b8b-9b4b-232f4c9f3e46" alt="Daedalus Banner" style="align-items=center; justify-content=center;" />
+</p>
 
 <p align="center">
     <img src="https://img.shields.io/badge/Project%20Status-Release-green" alt="Release Status Badge" />

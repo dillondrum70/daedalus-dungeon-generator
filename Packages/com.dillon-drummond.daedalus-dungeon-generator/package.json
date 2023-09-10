@@ -6,8 +6,8 @@
   "unity": "2021.3",
   "unityRelease": "8f1",
   "documentationUrl": "https://github.com/dillondrum70/daedalus-dungeon-generator/wiki",
-  "changelogUrl": "https://example.com/changelog.html",
-  "licensesUrl": "https://example.com/licensing.html",
+  "changelogUrl": "https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Changelog",
+  "licensesUrl": "https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/License",
   "keywords": [
     "keyword1",
     "keyword2",
