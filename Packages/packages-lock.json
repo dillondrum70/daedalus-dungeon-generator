@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.dillon-drummond.daedalus-dungeon-generator": {
+    "com.dillondrum70.daedalus-dungeon-generator": {
       "version": "file:com.dillon-drummond.daedalus-dungeon-generator",
       "depth": 0,
       "source": "embedded",

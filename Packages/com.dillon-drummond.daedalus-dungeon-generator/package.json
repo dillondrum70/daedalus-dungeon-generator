@@ -1,5 +1,5 @@
 {
-  "name": "com.dillon-drummond.daedalus-dungeon-generator",
+  "name": "com.dillondrum70.daedalus-dungeon-generator",
   "version": "1.0.0",
   "displayName": "Daedalus Dungeon Generator",
   "description": "A 3D dungeon generator tool using A* and Delaunay Tetrahedralization.",
