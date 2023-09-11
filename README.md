@@ -64,15 +64,15 @@ Here are a few I've thought of doing but are less likely to happen:
 
 # Getting Started
 
-To generate a dungeon, add a [[DungeonGenerator]] component to an object, set the different types of prefabs in the inspector (examples are included in the package with names corresponding to the variables), then open the editor tool under `Tools > Dungeon Editor` and hit generate.
+To generate a dungeon, add a [DungeonGenerator](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/DungeonGenerator) component to an object, set the different types of prefabs in the inspector (examples are included in the package with names corresponding to the variables), then open the editor tool under `Tools > Dungeon Editor` and hit generate.
 
 ![DungeonGeneratorComponent](https://github.com/dillondrum70/daedalus-dungeon-generator/assets/70776550/a0b99177-ffe0-4a0a-a55a-6f8b892d6fa9)
 
-[[DungeonGenerator]] component added to a game object.
+[DungeonGenerator](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/DungeonGenerator) component added to a game object.
 
 ![DungeonGeneratorPrefabs](https://github.com/dillondrum70/daedalus-dungeon-generator/assets/70776550/fbd914ea-9594-43ab-a4bc-92f25715d637)
 
-Prefabs set in [[DungeonGenerator]].
+Prefabs set in [DungeonGenerator](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/DungeonGenerator).
 
 ![GameObject Structure](https://github.com/dillondrum70/daedalus-dungeon-generator/assets/70776550/f13cbbbd-4920-4256-a910-5e7606d4e954)
 
@@ -82,15 +82,15 @@ The resulting prefab should have the above hierarchy architecture with dungeon a
 
 High level overviews of specific concepts
 
-### [[Delaunay Tetrahedralization]]
+### [Delaunay Tetrahedralization](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Delaunay-Tetrahedralization)
 
-### [[Minimum Spanning Tree]]
+### [Minimum Spanning Tree](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Minimum-Spanning-Tree)
 
-### [[A* Pathfinding]]
+### [A* Pathfinding](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/A%2A-Pathfinding)
 
 # Controls
 
-The [[Editor Tool]] lets you control generation at any point in time as long as you are not working in a build.  Otherwise, the play mode controls in the demo scene include:
+The [Editor Tool](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Editor-Tool) lets you control generation at any point in time as long as you are not working in a build.  Otherwise, the play mode controls in the demo scene include:
 
 |Control |Function |
 |:---|:---|
@@ -174,3 +174,44 @@ Menu option that opens the editor.
 The resulting prefab should have the following hierarchy architecture with dungeon assets under Paths and Rooms:
 
 ![GameObject Structure](https://github.com/dillondrum70/daedalus-dungeon-generator/assets/70776550/f13cbbbd-4920-4256-a910-5e7606d4e954)
+
+# Classes, Structs, and Enums
+
+### Runtime
+
+* [DungeonGenerator](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/DungeonGenerator) <- Entry point for the project
+  * [DebugMode](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/DebugMode)
+
+* [Room](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Room)
+
+* [AStar](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/AStar)
+  * [AStarNode](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/AStarNode)
+  * [Directions](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Directions)
+
+* [Grid](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Grid)
+  * [Cell](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Cell)
+  * [CellTypes](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/CellTypes)
+
+* [DelaunayTetrahedralization](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/DelaunayTetrahedralization)
+  * [Edge](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Edge)
+  * [Triangle](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Triangle)
+  * [Tetrahedron](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Tetrahedron)
+  * [Circumcircle](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Circumcircle)
+  * [Circumsphere](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/Circumsphere)
+
+* [MinumumSpanningTree](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/MinumumSpanningTree)
+
+* [PriorityQueue](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/PriorityQueue)
+
+### Editor
+
+* [SaveDungeonEditor](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/SaveDungeonEditor)
+  * [EditorProperties](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/EditorProperties)
+
+### Sample
+
+* [DemoClass](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/DemoClass)
+
+* [CameraOrbit](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/CameraOrbit)
+
+* [PlayerMovement](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/PlayerMovement)
