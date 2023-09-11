@@ -70,6 +70,10 @@ If you get an error about the `/Samples/Scenes/` folder, do not worry.  Unity pa
 
 Prefabs set in [DungeonGenerator](https://github.com/dillondrum70/daedalus-dungeon-generator/wiki/DungeonGenerator).
 
+![GameObject Structure](https://github.com/dillondrum70/GPR340-Dungeon_Generation/assets/70776550/93494b7d-1df0-42d2-ae56-7af045d138ae)
+
+The resulting prefab should have the above hierarchy architecture with dungeon assets under Paths and Rooms.  This will be automatically set during generation as long as `roomParent` and `pathParent` are null.
+
 # Algorithms
 
 High level overviews of specific concepts
