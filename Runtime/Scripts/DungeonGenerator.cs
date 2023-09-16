@@ -901,7 +901,8 @@ public class DungeonGenerator : MonoBehaviour
                 //Random check to enable lights
                 if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
-                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                    StartLight light = trans.gameObject.GetComponent<StartLight>();
+                    if(light != null ) { light.EnableLight(); }
                 }
             }
         }
@@ -914,7 +915,7 @@ public class DungeonGenerator : MonoBehaviour
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
                 StartLight light = trans.gameObject.GetComponent<StartLight>();
-                light?.EnableLight();
+                if (light != null) { light.EnableLight(); }
             }
         }
     }
@@ -988,7 +989,8 @@ public class DungeonGenerator : MonoBehaviour
 
                 if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
-                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                    StartLight light = trans.gameObject.GetComponent<StartLight>();
+                    if (light != null) { light.EnableLight(); }
                 }
             }
         }
@@ -999,7 +1001,8 @@ public class DungeonGenerator : MonoBehaviour
 
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
-                trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                StartLight light = trans.gameObject.GetComponent<StartLight>();
+                if (light != null) { light.EnableLight(); }
             }
         }
     }
@@ -1072,7 +1075,8 @@ public class DungeonGenerator : MonoBehaviour
 
                 if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
-                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                    StartLight light = trans.gameObject.GetComponent<StartLight>();
+                    if (light != null) { light.EnableLight(); }
                 }
             }
         }
@@ -1083,7 +1087,8 @@ public class DungeonGenerator : MonoBehaviour
 
             if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
             {
-                trans.gameObject.GetComponent<StartLight>()?.EnableLight();
+                StartLight light = trans.gameObject.GetComponent<StartLight>();
+                if (light != null) { light.EnableLight(); }
             }
         }
     }
@@ -1160,10 +1165,11 @@ public class DungeonGenerator : MonoBehaviour
                 Transform trans = Instantiate(spawnObject, grid.GetCenterByIndices(currentIndex), GetWallRotation(currentIndex, adjacentIndex), roomParent).transform;
                 trans.localScale = cellDimensions;
 
-                if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
-                {
-                    trans.gameObject.GetComponent<StartLight>()?.EnableLight();
-                }
+                //if (UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
+                //{
+                //    StartLight light = trans.gameObject.GetComponent<StartLight>();
+                //    if (light != null) { light.EnableLight(); }
+                //}
             }
         }
         else //If next index is not valid, it is empty and we need a wall
@@ -1214,9 +1220,11 @@ public class DungeonGenerator : MonoBehaviour
                     && UnityEngine.Random.Range(0f, 1f) < percentEnableLights)
                 {
                     StartLight light = trans.gameObject.GetComponent<StartLight>();
-                    light?.EnableLight();
-
-                    light?.GetLight().transform.Rotate(new Vector3(0, 180f, 0));
+                    if (light != null) 
+                    { 
+                        light.EnableLight();
+                        light?.GetLight().transform.Rotate(new Vector3(0, 180f, 0));
+                    }                    
                 }
             }
         }

@@ -66,7 +66,7 @@ public class Grid : MonoBehaviour
     private Cell[,,] cells;
 
     [Tooltip("Toggles whether or not the grid should be drawn.")]
-    [SerializeField] bool drawGrid = true;
+    [SerializeField] bool drawGrid = false;
 
     /*
      * Getters

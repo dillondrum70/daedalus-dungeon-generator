@@ -121,7 +121,10 @@ public class DemoClass : MonoBehaviour
             orbitCamera.enabled = true;
             playerCamera.enabled = false;
 
-            Destroy(playerCamera.transform.parent.gameObject);
+            if(playerCamera.transform.parent.gameObject != null)
+            {
+                Destroy(playerCamera.transform.parent.gameObject);
+            }
         }
     }
 
