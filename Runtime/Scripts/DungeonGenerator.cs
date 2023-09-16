@@ -220,7 +220,7 @@ public class DungeonGenerator : MonoBehaviour
         minSpanTree.Clear();
         roomMap.Clear();
 
-        Setup();
+        //Setup();
 
         if (roomParent != null)
         {
@@ -263,6 +263,8 @@ public class DungeonGenerator : MonoBehaviour
     /// </summary>
     public void Generate()
     {
+        Setup();
+
         StartCoroutine(GenerateDungeon());
     }
 

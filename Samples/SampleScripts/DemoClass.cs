@@ -82,6 +82,11 @@ public class DemoClass : MonoBehaviour
         //Toggle between orbiting camera and first person view
         if (Input.GetKeyDown(KeyCode.Return))
         {
+            if(playerCamera == null)
+            {
+                return;
+            }
+
             //Make sure this isn't partway through dungeon generation where player
             //has been destroyed and not reinitialized yet
             if (playerCamera) 

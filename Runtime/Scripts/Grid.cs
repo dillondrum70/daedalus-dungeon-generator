@@ -235,6 +235,11 @@ public class Grid : MonoBehaviour
     /// </summary>
     private void OnDrawGizmos()
     {
+        if(cells == null)
+        {
+            return;
+        }
+
         if(Application.isPlaying && drawGrid)
         {
             foreach (Cell cell in cells)
